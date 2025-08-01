@@ -139,6 +139,15 @@ void GlobalData::update(MonitorBasis basis)
 
 LRESULT GlobalData::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (uMsg == WM_KILLFOCUS) {
+        HWND focus = reinterpret_cast<HWND>(wParam);
+        if (focus != m_group_window->hwnd() && focus != m_list_window->hwnd()) {
+            m_group_window->hide();
+            m_list_window->hide();
+            return 0;
+        }
+    }
+
     if (m_main_window && hwnd == m_main_window->hwnd()) {
         return m_main_window->handleMessage(uMsg, wParam, lParam);
     } else if (m_group_window && hwnd == m_group_window->hwnd()) {

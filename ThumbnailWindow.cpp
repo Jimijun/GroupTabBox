@@ -47,6 +47,7 @@ LRESULT ThumbnailWindowBase::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lPar
         return 0;
 
     case WM_KEYUP:
+    case WM_SYSKEYUP:
         if (!m_keep_showing)
             handleKeyUp(wParam);
         return 0;
