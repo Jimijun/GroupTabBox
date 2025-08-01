@@ -1,5 +1,9 @@
 #include "GlobalData.h"
 
+#include <ShellScalingApi.h>
+
+#pragma comment(lib, "shcore.lib")
+
 BOOL enumWindowsProc(HWND hwnd, LPARAM lParam)
 {
     if (WindowHandle::validWindow(hwnd))
@@ -16,12 +20,6 @@ GlobalData *GlobalData::instance()
 {
     static GlobalData instance;
     return &instance;
-}
-
-GlobalData::~GlobalData()
-{
-    // set true to ignore messages
-    m_internal_destroying = true;
 }
 
 const std::vector<WindowHandle *> &GlobalData::windowsFromGroup(const std::wstring &group_name) const
@@ -41,9 +39,11 @@ RectF GlobalData::groupWindowLimitRect() const
     RECT rc_work = monitorInfo().rcWork;
     RectF work_rect(rc_work.left, rc_work.top,
             rc_work.right - rc_work.left, rc_work.bottom - rc_work.top);
-    work_rect.Width -= kListWindowWidthLimit;
-    rect.Width = max(work_rect.Width * kGroupWindowWidthLimitRadio, kGridItemMaxWidth + kItemHMargin * 2);
-    rect.Height = max(work_rect.Height * kGroupWindowHeightLimitRadio, kGridItemMaxHeight + kItemVMargin * 2);
+    work_rect.Width -= m_ui.listWindowWidthLimit();
+    rect.Width = max(work_rect.Width * m_ui.groupWindowWidthLimitRadio(),
+            m_ui.gridItemMaxWidth() + m_ui.itemHMargin() * 2);
+    rect.Height = max(work_rect.Height * m_ui.groupWindowHeightLimitRadio(),
+            m_ui.gridItemMaxHeight() + m_ui.itemVMargin() * 2);
     rect.X = work_rect.X + (work_rect.Width - rect.Width) / 2;
     rect.Y = work_rect.Y + (work_rect.Height - rect.Height) / 2;
     return rect;
@@ -55,8 +55,8 @@ RectF GlobalData::listWindowLimitRect() const
         return RectF();
 
     RECT rc_work = monitorInfo().rcWork;
-    return RectF(rc_work.right - kListWindowWidthLimit, rc_work.top,
-            kListWindowWidthLimit, rc_work.bottom - rc_work.top);
+    return RectF(rc_work.right - m_ui.listWindowWidthLimit(), rc_work.top,
+            m_ui.listWindowWidthLimit(), rc_work.bottom - rc_work.top);
 }
 
 bool GlobalData::initialize(HINSTANCE instance)
@@ -82,6 +82,13 @@ bool GlobalData::initialize(HINSTANCE instance)
     return true;
 }
 
+void GlobalData::destroy()
+{
+    m_main_window.reset();
+    m_group_window.reset();
+    m_list_window.reset();
+}
+
 void GlobalData::update(MonitorBasis basis)
 {
     m_active_window = GetForegroundWindow();
@@ -100,6 +107,11 @@ void GlobalData::update(MonitorBasis basis)
         }
         break;
     }
+
+    UINT dpi;
+    GetDpiForMonitor(m_current_monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi);
+    m_monitor_scale = dpi / 96.0f;
+    m_ui.update(m_monitor_scale);
 
     m_group_window->hide();
     m_list_window->hide();

@@ -1,4 +1,5 @@
 #include "LayoutItem.h"
+#include "GlobalData.h"
 #include "UIParam.h"
 
 SizeF LayoutItem::scaledSize(REAL width, REAL height, REAL width_limit, REAL height_limit,
@@ -41,9 +42,10 @@ void LayoutItem::setRect(const RectF &rect)
 {
     m_rect = rect;
 
+    const UIParam &ui = globalData()->UI();
     // update icon rect
-    const float icon_size = m_bar_height - kItemIconMargin * 2;
-    m_icon_rect = { kItemIconMargin, kItemIconMargin, icon_size, icon_size };
+    const float icon_size = m_bar_height - ui.itemIconMargin() * 2;
+    m_icon_rect = { ui.itemIconMargin(), ui.itemIconMargin(), icon_size, icon_size };
     m_icon_rect.Offset(m_rect.X, m_rect.Y);
 }
 
@@ -52,8 +54,10 @@ void LayoutItem::drawInfo(Graphics *graphics) const
     if (!graphics)
         return;
 
+    const UIParam &ui = globalData()->UI();
+
     // draw background
-    Gdiplus::SolidBrush back_brush{Gdiplus::Color(kItemBackgroundColor)};
+    Gdiplus::SolidBrush back_brush{Gdiplus::Color(ui.itemBackgroundColor())};
     graphics->FillRectangle(&back_brush, m_rect);
 
     // draw icon
@@ -62,14 +66,14 @@ void LayoutItem::drawInfo(Graphics *graphics) const
 
     // draw title
     Gdiplus::StringFormat format(Gdiplus::StringFormat::GenericTypographic());
-    format.SetTrimming(Gdiplus::StringTrimming::StringTrimmingEllipsisWord);
+    format.SetTrimming(Gdiplus::StringTrimming::StringTrimmingEllipsisCharacter);
     format.SetLineAlignment(Gdiplus::StringAlignment::StringAlignmentCenter);
     format.SetAlignment(Gdiplus::StringAlignment::StringAlignmentNear);
-    Gdiplus::Font font(L"Arial", 10);
+    Gdiplus::Font font(ui.itemFontName(), ui.itemFontSize());
     Gdiplus::SolidBrush text_brush(Gdiplus::Color::White);
     RectF title_rect = {
-        m_icon_rect.GetRight() + kItemIconMargin * 2, m_icon_rect.Y,
-        m_rect.Width - m_icon_rect.Width - kItemIconMargin * 3, m_icon_rect.Height
+        m_icon_rect.GetRight() + ui.itemIconMargin() * 2, m_icon_rect.Y,
+        m_rect.Width - m_icon_rect.Width - ui.itemIconMargin() * 3, m_icon_rect.Height
     };
     graphics->DrawString(m_window->title().c_str(), -1, &font, title_rect, &format, &text_brush);
 }

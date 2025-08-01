@@ -2,6 +2,7 @@
 
 #include "MainWindow.h"
 #include "ThumbnailWindow.h"
+#include "UIParam.h"
 #include "WindowHandle.h"
 
 #include <string>
@@ -24,10 +25,11 @@ public:
     static GlobalData *instance();
 
     HINSTANCE hInstance() const { return m_hinstance; }
-    bool internalDestroying() const { return m_internal_destroying; }
     HWND activeWindow() const { return m_active_window; }
     const HMONITOR &currentMonitor() const { return m_current_monitor; }
     const MONITORINFOEX &monitorInfo() const { return m_monitor_info; }
+    REAL monitorScale() const { return m_monitor_scale; }
+    const UIParam &UI() const { return m_ui; }
     const std::vector<WindowHandle> &windows() const { return m_windows; }
     const std::vector<std::vector<WindowHandle *>> &windowGroups() const { return m_window_groups; }
     const std::vector<WindowHandle *> &windowsFromGroup(const std::wstring &group_name) const;
@@ -38,20 +40,20 @@ public:
     ListThumbnailWindow *listWindow() const { return m_list_window.get(); }
 
     bool initialize(HINSTANCE instance);
+    void destroy();
     void update(MonitorBasis basis);
     LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void activateWindow(const WindowHandle *window);
 
 private:
-    GlobalData() = default;
-    ~GlobalData();
-
     HINSTANCE m_hinstance = nullptr;
-    bool m_internal_destroying = false;
 
     HWND m_active_window = nullptr;
     HMONITOR m_current_monitor = nullptr;
     MONITORINFOEX m_monitor_info;
+    REAL m_monitor_scale = 1.f;
+
+    UIParam m_ui;
 
     std::vector<WindowHandle> m_windows;
     std::unordered_map<std::wstring, size_t> m_group_index;

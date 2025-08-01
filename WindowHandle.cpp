@@ -87,12 +87,6 @@ void WindowHandle::updateAttributes()
         } else {
             rect = placement.rcNormalPosition;
         }
-        // scale rect
-        const float scale = GetDpiForWindow(m_hwnd) / 96.f;
-        const LONG width = (rect.right - rect.left) * scale;
-        const LONG height = (rect.bottom - rect.top) * scale;
-        rect.right = rect.left + width;
-        rect.bottom = rect.top + height;
     }
     m_rect = RectF(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 
