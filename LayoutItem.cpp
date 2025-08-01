@@ -73,7 +73,7 @@ void LayoutItem::drawInfo(Graphics *graphics) const
     Gdiplus::SolidBrush text_brush(Gdiplus::Color::White);
     RectF title_rect = {
         m_icon_rect.GetRight() + ui.itemIconMargin() * 2, m_icon_rect.Y,
-        m_rect.Width - m_icon_rect.Width - ui.itemIconMargin() * 3, m_icon_rect.Height
+        m_rect.Width - m_icon_rect.Width - ui.itemIconMargin() * 4, m_icon_rect.Height
     };
     graphics->DrawString(m_window->title().c_str(), -1, &font, title_rect, &format, &text_brush);
 }

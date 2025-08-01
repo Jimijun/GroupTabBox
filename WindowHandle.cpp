@@ -4,6 +4,8 @@
 #include <psapi.h>
 
 #include <array>
+#include <fstream>
+#include <regex>
 
 static DWORD getWidnowPid(HWND hwnd)
 {
@@ -35,6 +37,39 @@ static std::wstring getProcessPath(DWORD pid)
             path = buffer.data();
     }
     return path;
+}
+
+static HICON extractUWPIcon(const std::wstring &exe_path)
+{
+    size_t pos = exe_path.find_last_of(L"\\");
+    if (pos == std::wstring::npos)
+        return nullptr;
+
+    std::string parent_path = std::string(exe_path.begin(), exe_path.begin() + pos + 1);
+    std::string xml_path = parent_path + "AppxBlockMap.xml";
+    std::ifstream xml_file(xml_path, std::ios::in);
+    if (!xml_file.is_open())
+        return nullptr;
+
+    std::string buffer;
+    // parse xml file
+    while (xml_file >> buffer) {
+        std::smatch match;
+        // find icon path
+        if (std::regex_search(buffer, match, std::regex("Name=\"(.*targetsize-96.png)\""))
+                && match.size() > 1) {
+            std::string icon_path = parent_path + std::string(match[1].first, match[1].second);
+            std::ifstream icon_file(icon_path, std::ios::in | std::ios::binary);
+            if (!icon_file.is_open())
+                return nullptr;
+            // load icon
+            std::vector<BYTE> icon_bits{std::istreambuf_iterator<char>(icon_file),
+                    std::istreambuf_iterator<char>()};
+            return CreateIconFromResource(icon_bits.data(), icon_bits.size(), true, 0x00030000);
+        }
+    }
+
+    return nullptr;
 }
 
 WindowHandle::WindowHandle(HWND hwnd)
@@ -103,8 +138,13 @@ void WindowHandle::updateAttributes()
     }
 
     HICON icon = reinterpret_cast<HICON>(GetClassLongPtr(m_hwnd, GCLP_HICON));
-    if (!icon && !m_exe_path.empty())
-        icon = ExtractIcon(globalData()->hInstance(), m_exe_path.c_str(), 0);
+    if (!icon && !m_exe_path.empty()) {
+        if (m_exe_path.find(L"C:\\Program Files\\WindowsApps") != std::wstring::npos) {
+            icon = extractUWPIcon(m_exe_path);
+        } else {
+            icon = ExtractIcon(globalData()->hInstance(), m_exe_path.c_str(), 0);
+        }
+    }
     m_icon = { icon, DestroyIcon };
 }
 
