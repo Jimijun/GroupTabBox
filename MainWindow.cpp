@@ -2,6 +2,21 @@
 #include "GlobalData.h"
 #include "ThumbnailWindow.h"
 
+static HMONITOR monitorFromActiveWindow()
+{
+    HWND hwnd = GetForegroundWindow();
+    if (!hwnd)
+        return nullptr;
+    return MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+}
+
+static HMONITOR monitorFromCursor()
+{
+    POINT pos;
+    GetCursorPos(&pos);
+    return MonitorFromPoint(pos, MONITOR_DEFAULTTONEAREST);
+}
+
 MainWindow::~MainWindow()
 {
     if (m_hwnd) {
@@ -9,7 +24,9 @@ MainWindow::~MainWindow()
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectPrev);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectNext);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev);
+        // UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow);
 
         DestroyWindow(m_hwnd);
     }
@@ -33,7 +50,9 @@ bool MainWindow::create(HINSTANCE instance)
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectPrev, MOD_ALT | MOD_SHIFT, VK_F1);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectNext, MOD_ALT, VK_F2);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev, MOD_ALT | MOD_SHIFT, VK_F2);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow, MOD_ALT, VK_F3);
+    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext, MOD_ALT, VK_F3);
+    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev, MOD_ALT | MOD_SHIFT, VK_F3);
+    // success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow, MOD_ALT, VK_F3);
 
     return success;
 }
@@ -58,6 +77,11 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             handleSwitchWindow(static_cast<HotkeyID>(wParam));
             break;
 
+        case HotkeyID::HotkeyIDMonitorSelectNext:
+        case HotkeyID::HotkeyIDMonitorSelectPrev:
+            handleSwitchMonitor(static_cast<HotkeyID>(wParam));
+            break;
+
         case HotkeyID::HotkeyIDShowWindow:
             handleShowWindow(static_cast<HotkeyID>(wParam));
             break;
@@ -77,15 +101,17 @@ void MainWindow::handleSwitchGroup(HotkeyID kid)
         return;
 
     if (!group->visible()) {
-        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow))
+        if (!globalData()->update(monitorFromActiveWindow()))
             return;
         group->show(false);
     }
 
-    if (kid == HotkeyID::HotkeyIDGroupSelectNext) {
-        group->selectNext();
-    } else {
-        group->selectPrev();
+    if (group->visible()) {
+        if (kid == HotkeyID::HotkeyIDGroupSelectNext) {
+            group->selectNext();
+        } else {
+            group->selectPrev();
+        }
     }
 }
 
@@ -96,7 +122,7 @@ void MainWindow::handleSwitchWindow(HotkeyID kid)
         return;
 
     if (!list->visible()) {
-        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow))
+        if (!globalData()->update(monitorFromActiveWindow()))
             return;
 
         // show the group of the active window
@@ -114,11 +140,47 @@ void MainWindow::handleSwitchWindow(HotkeyID kid)
         list->show(false);
     }
 
-    if (kid == HotkeyID::HotkeyIDWindowSelectNext) {
-        list->selectNext();
-    } else {
-        list->selectPrev();
+    if (list->visible()) {
+        if (kid == HotkeyID::HotkeyIDWindowSelectNext) {
+            list->selectNext();
+        } else {
+            list->selectPrev();
+        }
     }
+}
+
+void MainWindow::handleSwitchMonitor(HotkeyID kid)
+{
+    GroupThumbnailWindow *group = globalData()->groupWindow();
+    ListThumbnailWindow *list = globalData()->listWindow();
+    if (!group || !list)
+        return;
+
+    if (!group->visible() || !list->visible()) {
+        if (!globalData()->update(monitorFromActiveWindow()))
+            return;
+    }
+    group->hide();
+    list->hide();
+
+    const std::vector<HMONITOR> &monitors = globalData()->monitors();
+    HMONITOR current_monitor = globalData()->currentMonitor();
+    if (kid == HotkeyID::HotkeyIDMonitorSelectNext) {
+        auto it = std::find(monitors.begin(), monitors.end(), current_monitor);
+        if (it == monitors.end())
+            return;
+        int index = it - monitors.begin();
+        globalData()->setCurrentMonitor(monitors[(index + 1) % monitors.size()]);
+    } else {
+        auto it = std::find(monitors.begin(), monitors.end(), current_monitor);
+        if (it == monitors.end())
+            return;
+        int index = it - monitors.begin();
+        globalData()->setCurrentMonitor(monitors[(index - 1 + monitors.size()) % monitors.size()]);
+    }
+
+    group->show(false);
+    list->show(false);
 }
 
 void MainWindow::handleShowWindow(HotkeyID kid)
@@ -129,7 +191,7 @@ void MainWindow::handleShowWindow(HotkeyID kid)
         return;
 
     if (!group->visible() && !list->visible()) {
-        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisCursor))
+        if (!globalData()->update(monitorFromCursor()))
             return;
         group->show(true);
         list->show(true);

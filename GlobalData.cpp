@@ -11,6 +11,12 @@ BOOL enumWindowsProc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+BOOL enumMonitorsProc(HMONITOR monitor, HDC hdc, LPRECT lprc, LPARAM lParam)
+{
+    globalData()->m_monitors.push_back(monitor);
+    return TRUE;
+}
+
 GlobalData *globalData()
 {
     return GlobalData::instance();
@@ -59,6 +65,21 @@ RectF GlobalData::listWindowLimitRect() const
             m_ui.listWindowWidthLimit(), rc_work.bottom - rc_work.top);
 }
 
+void GlobalData::setCurrentMonitor(HMONITOR monitor)
+{
+    if (!monitor)
+        return;
+
+    m_current_monitor = monitor;
+    m_monitor_info.cbSize = sizeof(m_monitor_info);
+    GetMonitorInfo(m_current_monitor, &m_monitor_info);
+
+    UINT dpi;
+    GetDpiForMonitor(m_current_monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi);
+    m_monitor_scale = dpi / 96.0f;
+    m_ui.update(m_monitor_scale);
+}
+
 bool GlobalData::initialize(HINSTANCE instance)
 {
     m_hinstance = instance;
@@ -89,39 +110,21 @@ void GlobalData::destroy()
     m_list_window.reset();
 }
 
-bool GlobalData::update(MonitorBasis basis)
+bool GlobalData::update(HMONITOR monitor)
 {
+    if (!monitor)
+        return false;
+    setCurrentMonitor(monitor);
+
     m_group_window->hide();
     m_list_window->hide();
 
-    m_active_window = GetForegroundWindow();
-    switch (basis) {
-    case MonitorBasis::MonitorBasisWindow:
-        if (m_active_window) {
-            m_current_monitor = MonitorFromWindow(m_active_window, MONITOR_DEFAULTTONEAREST);
-            break;
-        }
-        // else fallthrough
-
-    case MonitorBasis::MonitorBasisCursor:
-    default:
-        {
-            POINT pos;
-            GetCursorPos(&pos);
-            m_current_monitor = MonitorFromPoint(pos, MONITOR_DEFAULTTONEAREST);
-        }
-        break;
-    }
-    if (!m_current_monitor)
+    m_monitors.clear();
+    EnumDisplayMonitors(nullptr, nullptr, enumMonitorsProc, 0);
+    if (m_monitors.empty())
         return false;
 
-    UINT dpi;
-    GetDpiForMonitor(m_current_monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi);
-    m_monitor_scale = dpi / 96.0f;
-    m_ui.update(m_monitor_scale);
-
-    m_monitor_info.cbSize = sizeof(m_monitor_info);
-    GetMonitorInfo(m_current_monitor, &m_monitor_info);
+    m_active_window = GetForegroundWindow();
 
     m_windows.clear();
     EnumWindows(enumWindowsProc, 0);

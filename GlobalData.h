@@ -14,20 +14,16 @@ using Gdiplus::REAL;
 class GlobalData
 {
     friend BOOL enumWindowsProc(HWND hwnd, LPARAM lParam);
+    friend BOOL enumMonitorsProc(HMONITOR monitor, HDC hdc, LPRECT lprc, LPARAM lParam);
 
 public:
-    enum class MonitorBasis
-    {
-        MonitorBasisWindow,
-        MonitorBasisCursor
-    };
-
     static GlobalData *instance();
 
     HINSTANCE hInstance() const { return m_hinstance; }
     HWND activeWindow() const { return m_active_window; }
     const HMONITOR &currentMonitor() const { return m_current_monitor; }
     const MONITORINFOEX &monitorInfo() const { return m_monitor_info; }
+    const std::vector<HMONITOR> &monitors() const { return m_monitors; }
     REAL monitorScale() const { return m_monitor_scale; }
     const UIParam &UI() const { return m_ui; }
     const std::vector<WindowHandle> &windows() const { return m_windows; }
@@ -39,9 +35,11 @@ public:
     GroupThumbnailWindow *groupWindow() const { return m_group_window.get(); }
     ListThumbnailWindow *listWindow() const { return m_list_window.get(); }
 
+    void setCurrentMonitor(HMONITOR monitor);
+
     bool initialize(HINSTANCE instance);
     void destroy();
-    bool update(MonitorBasis basis);
+    bool update(HMONITOR monitor);
     LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void activateWindow(const WindowHandle *window);
 
@@ -54,6 +52,7 @@ private:
     HWND m_active_window = nullptr;
     HMONITOR m_current_monitor = nullptr;
     MONITORINFOEX m_monitor_info;
+    std::vector<HMONITOR> m_monitors;
     REAL m_monitor_scale = 1.f;
 
     UIParam m_ui;

@@ -20,11 +20,14 @@ private:
         HotkeyIDGroupSelectPrev,
         HotkeyIDWindowSelectNext,
         HotkeyIDWindowSelectPrev,
+        HotkeyIDMonitorSelectNext,
+        HotkeyIDMonitorSelectPrev,
         HotkeyIDShowWindow
     };
 
     void handleSwitchGroup(HotkeyID kid);
     void handleSwitchWindow(HotkeyID kid);
+    void handleSwitchMonitor(HotkeyID kid);
     void handleShowWindow(HotkeyID kid);
 
     HWND m_hwnd = nullptr;
