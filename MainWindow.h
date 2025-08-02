@@ -22,7 +22,7 @@ private:
         HotkeyIDWindowSelectPrev,
         HotkeyIDMonitorSelectNext,
         HotkeyIDMonitorSelectPrev,
-        HotkeyIDShowWindow
+        HotkeyIDKeepShowWindow
     };
 
     void handleSwitchGroup(HotkeyID kid);

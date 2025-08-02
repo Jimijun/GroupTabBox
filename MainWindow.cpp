@@ -26,7 +26,7 @@ MainWindow::~MainWindow()
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev);
-        // UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow);
 
         DestroyWindow(m_hwnd);
     }
@@ -52,7 +52,9 @@ bool MainWindow::create(HINSTANCE instance)
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev, MOD_ALT | MOD_SHIFT, VK_F2);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext, MOD_ALT, VK_F3);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev, MOD_ALT | MOD_SHIFT, VK_F3);
-    // success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDShowWindow, MOD_ALT, VK_F3);
+    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F1);
+    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F2);
+    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F3);
 
     return success;
 }
@@ -82,7 +84,7 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             handleSwitchMonitor(static_cast<HotkeyID>(wParam));
             break;
 
-        case HotkeyID::HotkeyIDShowWindow:
+        case HotkeyID::HotkeyIDKeepShowWindow:
             handleShowWindow(static_cast<HotkeyID>(wParam));
             break;
         }
