@@ -6,6 +6,7 @@
 
 using Gdiplus::Bitmap;
 using Gdiplus::Graphics;
+using Gdiplus::PointF;
 using Gdiplus::REAL;
 using Gdiplus::SizeF;
 
@@ -17,9 +18,9 @@ public:
     WindowHandle *windowHandle() { return m_window; }
     const WindowHandle *windowHandle() const { return m_window; }
     const RectF &rect() const { return m_rect; }
-    RectF thumbnailRect() const;
+    RectF thumbnailRect() const { return m_thumbnail_rect; }
 
-    void setRect(const RectF &rect);
+    void setPosition(const PointF &pos);
 
     void drawInfo(Graphics *graphics) const;
 
@@ -29,6 +30,7 @@ public:
 private:
     WindowHandle *m_window = nullptr;
     RectF m_rect;
+    RectF m_thumbnail_rect;
     REAL m_bar_height = 0;
     std::unique_ptr<Bitmap> m_icon_bitmap = nullptr;
     RectF m_icon_rect;

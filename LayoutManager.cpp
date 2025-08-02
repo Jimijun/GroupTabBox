@@ -116,6 +116,7 @@ void GridLayoutManager::addItem(WindowHandle *window)
             window_rect.Width, window_rect.Height,
             ui.gridItemMaxWidth(), ui.gridItemMaxHeight(), ui.gridBarHeight());
     RectF rect(PointF(), scaled_size);
+    rect.Width = max(rect.Width, ui.listItemMinWidth());
 
     if (m_items.empty()) {
         // first item
@@ -160,9 +161,8 @@ void GridLayoutManager::alignItems()
         const REAL width = back.GetRight() - front.X;
         const REAL offset = (m_widest - width) / 2;
         for (LayoutItem &item : row) {
-            RectF rect = item.rect();
-            rect.Offset(offset, 0);
-            item.setRect(rect);
+            PointF pos = { item.rect().X + offset, item.rect().Y };
+            item.setPosition(pos);
         }
     }
     m_rect = {
@@ -220,6 +220,7 @@ void ListLayoutManager::addItem(WindowHandle *window)
             window_rect.Width, window_rect.Height,
             ui.listItemMaxWidth(), ui.listItemMaxHeight(), ui.listBarHeight());
     RectF rect(PointF(), scaled_size);
+    rect.Width = max(rect.Width, ui.listItemMinWidth());
 
     if (m_items.empty()) {
         rect.X = ui.listEdgeHMargin();
@@ -247,8 +248,7 @@ void ListLayoutManager::alignItems()
     for (LayoutItem &item : m_items) {
         RectF item_rect = item.rect();
         const LONG offset = (m_widest - item_rect.Width) / 2;
-        item_rect.Offset(offset, 0);
-        item.setRect(item_rect);
+        item.setPosition({ item_rect.X + offset, item_rect.Y });
     }
     m_rect = {
         0, 0,

@@ -20,9 +20,20 @@ SizeF LayoutItem::scaledSize(REAL width, REAL height, REAL width_limit, REAL hei
 }
 
 LayoutItem::LayoutItem(WindowHandle *window, const RectF &rect, const REAL bar_height)
-    : m_window(window), m_bar_height(bar_height)
+    : m_window(window), m_rect(rect), m_bar_height(bar_height)
 {
-    setRect(rect);
+    // align thumbnail rect
+    const RectF &window_rect = window->rect();
+    SizeF thumbnail_size = { 0, rect.Height - bar_height };
+    thumbnail_size.Width = thumbnail_size.Height * (window_rect.Width / window_rect.Height);
+    m_thumbnail_rect = {
+        m_rect.X + (m_rect.Width - thumbnail_size.Width) / 2, m_rect.Y + bar_height,
+        thumbnail_size.Width, thumbnail_size.Height
+    };
+
+    const UIParam &ui = globalData()->UI();
+    m_icon_rect = { m_rect.X, m_rect.Y, bar_height, bar_height };
+    m_icon_rect.Inflate(-ui.itemIconMargin(), -ui.itemIconMargin());
 
     // initialize icon bitmap data
     HICON icon = m_window->icon();
@@ -30,23 +41,12 @@ LayoutItem::LayoutItem(WindowHandle *window, const RectF &rect, const REAL bar_h
         m_icon_bitmap = decltype(m_icon_bitmap)(Bitmap::FromHICON(icon));
 }
 
-RectF LayoutItem::thumbnailRect() const
+void LayoutItem::setPosition(const PointF &pos)
 {
-    return {
-        m_rect.X, m_rect.Y + m_bar_height,
-        m_rect.Width, m_rect.Height - m_bar_height
-    };
-}
-
-void LayoutItem::setRect(const RectF &rect)
-{
-    m_rect = rect;
-
-    const UIParam &ui = globalData()->UI();
-    // update icon rect
-    const float icon_size = m_bar_height - ui.itemIconMargin() * 2;
-    m_icon_rect = { ui.itemIconMargin(), ui.itemIconMargin(), icon_size, icon_size };
-    m_icon_rect.Offset(m_rect.X, m_rect.Y);
+    const PointF offset = { pos.X - m_rect.X, pos.Y - m_rect.Y };
+    m_rect.Offset(offset);
+    m_thumbnail_rect.Offset(offset);
+    m_icon_rect.Offset(offset);
 }
 
 void LayoutItem::drawInfo(Graphics *graphics) const

@@ -15,12 +15,14 @@ public:
     uint32_t itemBackgroundColor() const { return m_kItembackgroundColor; }
 
     float gridItemMaxWidth() const { return m_grid_layout_param.item_max_width; }
+    float gridItemMinWidth() const { return m_grid_layout_param.item_min_width; }
     float gridItemMaxHeight() const { return m_grid_layout_param.item_max_height; }
     float gridBarHeight() const { return m_grid_layout_param.bar_height; }
     float gridEdgeHMargin() const { return m_grid_layout_param.edge_h_margin; }
     float gridEdgeVMargin() const { return m_grid_layout_param.edge_v_margin; }
 
     float listItemMaxWidth() const { return m_list_layout_param.item_max_width; }
+    float listItemMinWidth() const { return m_list_layout_param.item_min_width; }
     float listItemMaxHeight() const { return m_list_layout_param.item_max_height; }
     float listBarHeight() const { return m_list_layout_param.bar_height; }
     float listEdgeHMargin() const { return m_list_layout_param.edge_h_margin; }
@@ -47,9 +49,9 @@ public:
         m_item_v_margin = 30 * scale;
         m_item_icon_margin = 5 * scale;
 
-        m_grid_layout_param = { 240, 120, 30, 30, 30 };
+        m_grid_layout_param = { 240, 60, 120, 30, 30, 30 };
         m_grid_layout_param *= scale;
-        m_list_layout_param = { 360, 180, 45, 30, 30 };
+        m_list_layout_param = { 360, 90, 180, 45, 30, 30 };
         m_list_layout_param *= scale;
 
         m_list_window_width_limit = m_item_h_margin * 2 + m_list_layout_param.item_max_width;
@@ -70,10 +72,11 @@ private:
     const uint32_t m_kItembackgroundColor = 0xFF272727;
 
     struct {
-        float item_max_width, item_max_height, bar_height, edge_h_margin, edge_v_margin;
+        float item_max_width, item_min_width, item_max_height, bar_height, edge_h_margin, edge_v_margin;
         void operator*=(float scale)
         {
             item_max_width *= scale;
+            item_min_width *= scale;
             item_max_height *= scale;
             bar_height *= scale;
             edge_h_margin *= scale;
