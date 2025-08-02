@@ -26,7 +26,7 @@ const std::vector<WindowHandle *> &GlobalData::windowsFromGroup(const std::wstri
 {
     auto it = m_group_index.find(group_name);
     if (it == m_group_index.end())
-        return {};
+        return m_window_groups.back();  // return the empty group
     return m_window_groups[it->second];
 }
 
@@ -89,13 +89,18 @@ void GlobalData::destroy()
     m_list_window.reset();
 }
 
-void GlobalData::update(MonitorBasis basis)
+bool GlobalData::update(MonitorBasis basis)
 {
+    m_group_window->hide();
+    m_list_window->hide();
+
     m_active_window = GetForegroundWindow();
     switch (basis) {
     case MonitorBasis::MonitorBasisWindow:
-        if (m_active_window)
+        if (m_active_window) {
             m_current_monitor = MonitorFromWindow(m_active_window, MONITOR_DEFAULTTONEAREST);
+            break;
+        }
         // else fallthrough
 
     case MonitorBasis::MonitorBasisCursor:
@@ -107,20 +112,22 @@ void GlobalData::update(MonitorBasis basis)
         }
         break;
     }
+    if (!m_current_monitor)
+        return false;
 
     UINT dpi;
     GetDpiForMonitor(m_current_monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi);
     m_monitor_scale = dpi / 96.0f;
     m_ui.update(m_monitor_scale);
 
-    m_group_window->hide();
-    m_list_window->hide();
-
     m_monitor_info.cbSize = sizeof(m_monitor_info);
     GetMonitorInfo(m_current_monitor, &m_monitor_info);
 
     m_windows.clear();
     EnumWindows(enumWindowsProc, 0);
+    if (m_windows.empty())
+        return false;
+    WindowHandle::updateUWPIconCache();
 
     m_group_index.clear();
     m_window_groups.clear();
@@ -135,6 +142,10 @@ void GlobalData::update(MonitorBasis basis)
             m_window_groups.push_back({ &window });
         }
     }
+    // reserve an empty group
+    m_window_groups.push_back({});
+
+    return true;
 }
 
 LRESULT GlobalData::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

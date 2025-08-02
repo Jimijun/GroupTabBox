@@ -41,11 +41,14 @@ public:
 
     bool initialize(HINSTANCE instance);
     void destroy();
-    void update(MonitorBasis basis);
+    bool update(MonitorBasis basis);
     LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     void activateWindow(const WindowHandle *window);
 
 private:
+    GlobalData() = default;
+    ~GlobalData() = default;
+
     HINSTANCE m_hinstance = nullptr;
 
     HWND m_active_window = nullptr;

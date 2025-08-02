@@ -82,6 +82,7 @@ private:
     void handleRButtonUp(int x, int y);
 
     void updateListWindow();
+    bool multipleWindowsInGroup(const std::wstring &group) const;
 };
 
 class ListThumbnailWindow : public ThumbnailWindowBase

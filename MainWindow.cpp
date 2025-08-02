@@ -77,7 +77,8 @@ void MainWindow::handleSwitchGroup(HotkeyID kid)
         return;
 
     if (!group->visible()) {
-        globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow);
+        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow))
+            return;
         group->show(false);
     }
 
@@ -95,7 +96,8 @@ void MainWindow::handleSwitchWindow(HotkeyID kid)
         return;
 
     if (!list->visible()) {
-        globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow);
+        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisWindow))
+            return;
 
         // show the group of the active window
         HWND active_window = globalData()->activeWindow();
@@ -127,7 +129,8 @@ void MainWindow::handleShowWindow(HotkeyID kid)
         return;
 
     if (!group->visible() && !list->visible()) {
-        globalData()->update(GlobalData::MonitorBasis::MonitorBasisCursor);
+        if (!globalData()->update(GlobalData::MonitorBasis::MonitorBasisCursor))
+            return;
         group->show(true);
         list->show(true);
     }

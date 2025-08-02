@@ -39,38 +39,7 @@ static std::wstring getProcessPath(DWORD pid)
     return path;
 }
 
-static HICON extractUWPIcon(const std::wstring &exe_path)
-{
-    size_t pos = exe_path.find_last_of(L"\\");
-    if (pos == std::wstring::npos)
-        return nullptr;
-
-    std::string parent_path = std::string(exe_path.begin(), exe_path.begin() + pos + 1);
-    std::string xml_path = parent_path + "AppxBlockMap.xml";
-    std::ifstream xml_file(xml_path, std::ios::in);
-    if (!xml_file.is_open())
-        return nullptr;
-
-    std::string buffer;
-    // parse xml file
-    while (xml_file >> buffer) {
-        std::smatch match;
-        // find icon path
-        if (std::regex_search(buffer, match, std::regex("Name=\"(.*targetsize-96.png)\""))
-                && match.size() > 1) {
-            std::string icon_path = parent_path + std::string(match[1].first, match[1].second);
-            std::ifstream icon_file(icon_path, std::ios::in | std::ios::binary);
-            if (!icon_file.is_open())
-                return nullptr;
-            // load icon
-            std::vector<BYTE> icon_bits{std::istreambuf_iterator<char>(icon_file),
-                    std::istreambuf_iterator<char>()};
-            return CreateIconFromResource(icon_bits.data(), icon_bits.size(), true, 0x00030000);
-        }
-    }
-
-    return nullptr;
-}
+std::unordered_map<std::wstring, std::vector<BYTE>> WindowHandle::s_UWP_icon_cache;
 
 WindowHandle::WindowHandle(HWND hwnd)
     : m_hwnd(hwnd)
@@ -85,6 +54,7 @@ WindowHandle::WindowHandle(WindowHandle &&other)
     , m_rect(other.m_rect)
     , m_title(std::move(other.m_title))
     , m_exe_path(std::move(other.m_exe_path))
+    , m_monitor(other.m_monitor)
     , m_thumbnails(std::move(other.m_thumbnails))
 {
     other.m_hwnd = nullptr;
@@ -107,6 +77,9 @@ void WindowHandle::activate() const
 
 void WindowHandle::updateAttributes()
 {
+    if (!m_hwnd)
+        return;
+
     m_minimized = IsIconic(m_hwnd);
 
     RECT rect;
@@ -146,6 +119,8 @@ void WindowHandle::updateAttributes()
         }
     }
     m_icon = { icon, DestroyIcon };
+
+    m_monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
 }
 
 void WindowHandle::showThumbnail(HWND dst_hwnd, const RectF &dst_rect) const
@@ -201,8 +176,56 @@ bool WindowHandle::validWindow(HWND hwnd)
     if (cloaked)
         return false;
 
-    if (MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) != globalData()->currentMonitor())
-        return false;
-
     return true;
+}
+
+void WindowHandle::updateUWPIconCache()
+{
+    decltype(s_UWP_icon_cache) new_cache;
+    const std::vector<WindowHandle> &windows = globalData()->windows();
+    for (const auto &window : windows) {
+        auto it = s_UWP_icon_cache.find(window.exePath());
+        if (it != s_UWP_icon_cache.end())
+            new_cache.emplace(it->first, std::move(it->second));
+    }
+    s_UWP_icon_cache = std::move(new_cache);
+}
+
+HICON WindowHandle::extractUWPIcon(const std::wstring &exe_path)
+{
+    // hit cache
+    auto it = s_UWP_icon_cache.find(exe_path);
+    if (it != s_UWP_icon_cache.end())
+        return CreateIconFromResource(it->second.data(), it->second.size(), TRUE, 0x00030000);
+
+    size_t pos = exe_path.find_last_of(L"\\");
+    if (pos == std::wstring::npos)
+        return nullptr;
+
+    std::string parent_path = std::string(exe_path.begin(), exe_path.begin() + pos + 1);
+    std::string xml_path = parent_path + "AppxBlockMap.xml";
+    std::ifstream xml_file(xml_path, std::ios::in);
+    if (!xml_file.is_open())
+        return nullptr;
+
+    std::string buffer;
+    // parse xml file
+    while (xml_file >> buffer) {
+        std::smatch match;
+        // find icon path
+        if (std::regex_search(buffer, match, std::regex("Name=\"(.*targetsize-96.png)\""))
+                && match.size() > 1) {
+            std::string icon_path = parent_path + std::string(match[1].first, match[1].second);
+            std::ifstream icon_file(icon_path, std::ios::in | std::ios::binary);
+            if (!icon_file.is_open())
+                return nullptr;
+            // load icon
+            std::vector<BYTE> icon_bits{std::istreambuf_iterator<char>(icon_file),
+                    std::istreambuf_iterator<char>()};
+            auto pair = s_UWP_icon_cache.emplace(exe_path, std::move(icon_bits));
+            return CreateIconFromResource(pair.first->second.data(), pair.first->second.size(), TRUE, 0x00030000);
+        }
+    }
+
+    return nullptr;
 }
