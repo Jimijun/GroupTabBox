@@ -455,9 +455,8 @@ void GroupThumbnailWindow::handleMouseWheel(short delta, int x, int y)
 
 void GroupThumbnailWindow::handleLButtonUp(int x, int y)
 {
-    const LayoutItem *prev_selected = m_selected;
     ThumbnailWindowBase::handleLButtonUp(x, y);
-    if (globalData()->windowsFromGroup(m_selected->windowHandle()->exePath()).size() == 1)
+    if (m_selected && !multipleWindowsInGroup(m_selected->windowHandle()->exePath()))
         activateSelected();
 }
 
