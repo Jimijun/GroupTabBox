@@ -3,6 +3,7 @@
 #endif
 
 #include "GlobalData.h"
+#include "resource.h"
 
 #include <gdiplus.h>
 
@@ -34,6 +35,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wc.hInstance = hInstance;
     wc.lpszClassName = L"GroupTabBox";
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
     RegisterClass(&wc);
 
     if (!globalData()->initialize(hInstance)) {

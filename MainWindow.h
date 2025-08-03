@@ -2,6 +2,8 @@
 
 #include <Windows.h>
 
+#include <memory>
+
 class MainWindow
 {
 public:
@@ -31,5 +33,6 @@ private:
     void handleShowWindow(HotkeyID kid);
 
     HWND m_hwnd = nullptr;
+    std::unique_ptr<HMENU__, decltype(&DestroyMenu)> m_tray_menu = { nullptr, DestroyMenu };
 };
 

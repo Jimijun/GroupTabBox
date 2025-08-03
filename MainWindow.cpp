@@ -1,6 +1,18 @@
 #include "MainWindow.h"
 #include "GlobalData.h"
+#include "resource.h"
 #include "ThumbnailWindow.h"
+
+#include <CommCtrl.h>
+
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' \
+        version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#pragma comment(lib, "comctl32.lib")
+
+const UINT WMAPP_TRAYCALLBACK = WM_APP + 1;
+
+const UINT kTrayIconID = 114;
+const UINT kTrayMenuExitID = 514;
 
 static HMONITOR monitorFromActiveWindow()
 {
@@ -55,8 +67,29 @@ bool MainWindow::create(HINSTANCE instance)
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F1);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F2);
     success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F3);
+    if (!success)
+        return false;
 
-    return success;
+    // add tray icon
+    NOTIFYICONDATA nid;
+    nid.cbSize = sizeof(nid);
+    nid.hWnd = m_hwnd;
+    nid.uID = kTrayIconID;
+    nid.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
+    LoadIconMetric(instance, MAKEINTRESOURCE(IDI_ICON1), LIM_SMALL, &nid.hIcon);
+    const WCHAR tip[] = L"GroupTabBox";
+    std::copy(tip, tip + sizeof(tip), nid.szTip);
+    nid.uCallbackMessage = WMAPP_TRAYCALLBACK;
+    if (!Shell_NotifyIcon(NIM_ADD, &nid))
+        return false;
+
+    // create tray menu
+    m_tray_menu = { CreatePopupMenu(), DestroyMenu };
+    if (!m_tray_menu)
+        return false;
+    AppendMenu(m_tray_menu.get(), MF_STRING, kTrayMenuExitID, L"Exit");
+
+    return true;
 }
 
 LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -89,6 +122,27 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         }
         return 0;
+
+    case WM_COMMAND:
+        // exit
+        if (LOWORD(wParam) == kTrayMenuExitID) {
+            PostQuitMessage(0);
+            return 0;
+        }
+        break;
+
+    case WMAPP_TRAYCALLBACK:
+        // show tray menu
+        if (LOWORD(wParam) == kTrayIconID && LOWORD(lParam) == WM_RBUTTONDOWN) {
+            POINT pos;
+            GetCursorPos(&pos);
+            SetForegroundWindow(m_hwnd);
+            TrackPopupMenuEx(m_tray_menu.get(), TPM_LEFTALIGN | TPM_BOTTOMALIGN,
+                    pos.x, pos.y, m_hwnd, nullptr);
+            PostMessage(m_hwnd, WM_NULL, 0, 0);
+            return 0;
+        }
+        break;
 
     default:
         break;
@@ -162,6 +216,10 @@ void MainWindow::handleSwitchMonitor(HotkeyID kid)
         if (!globalData()->update(monitorFromActiveWindow()))
             return;
     }
+
+    if (globalData()->monitors().size() <= 1)
+        return;
+
     group->hide();
     list->hide();
 
