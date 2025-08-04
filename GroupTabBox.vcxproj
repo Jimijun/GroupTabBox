@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Configure.h" />
     <ClInclude Include="GlobalData.h" />
     <ClInclude Include="LayoutItem.h" />
     <ClInclude Include="LayoutManager.h" />
@@ -136,16 +137,21 @@
     <ResourceCompile Include="GroupTabBox.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Configure.cpp" />
     <ClCompile Include="GlobalData.cpp" />
     <ClCompile Include="LayoutItem.cpp" />
     <ClCompile Include="LayoutManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="ThumbnailWindow.cpp" />
+    <ClCompile Include="UIParam.cpp" />
     <ClCompile Include="WindowHandle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GroupTabBox.ini" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

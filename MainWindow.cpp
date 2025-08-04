@@ -38,7 +38,7 @@ MainWindow::~MainWindow()
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowingWindow);
 
         DestroyWindow(m_hwnd);
     }
@@ -57,16 +57,25 @@ bool MainWindow::create(HINSTANCE instance)
     if (!m_hwnd)
         return false;
 
+    const Configure *config = globalData()->config();
     bool success = true;
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectNext, MOD_ALT, VK_F1);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectPrev, MOD_ALT | MOD_SHIFT, VK_F1);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectNext, MOD_ALT, VK_F2);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev, MOD_ALT | MOD_SHIFT, VK_F2);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext, MOD_ALT, VK_F3);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev, MOD_ALT | MOD_SHIFT, VK_F3);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F1);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F2);
-    success &= RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowWindow, MOD_CONTROL | MOD_ALT, VK_F3);
+    const Configure::HotkeyPair *hotkey_pair;
+
+#define REGISTER_HELPER(pair, id) \
+    hotkey_pair = pair; \
+    if (hotkey_pair->first && hotkey_pair->second) \
+        success &= RegisterHotKey(m_hwnd, id, hotkey_pair->first, hotkey_pair->second)
+
+    REGISTER_HELPER(&config->switchGroupHotkey(), HotkeyID::HotkeyIDGroupSelectNext);
+    REGISTER_HELPER(&config->switchPrevGroupHotkey(), HotkeyID::HotkeyIDGroupSelectPrev);
+    REGISTER_HELPER(&config->switchWindowHotkey(), HotkeyID::HotkeyIDWindowSelectNext);
+    REGISTER_HELPER(&config->switchPrevWindowHotkey(), HotkeyID::HotkeyIDWindowSelectPrev);
+    REGISTER_HELPER(&config->switchMonitorHotkey(), HotkeyID::HotkeyIDMonitorSelectNext);
+    REGISTER_HELPER(&config->switchPrevMonitorHotkey(), HotkeyID::HotkeyIDMonitorSelectPrev);
+    REGISTER_HELPER(&config->keepShowingWindowHotkey(), HotkeyID::HotkeyIDKeepShowingWindow);
+
+#undef REGISTER_HELPER
+
     if (!success)
         return false;
 
@@ -117,7 +126,7 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             handleSwitchMonitor(static_cast<HotkeyID>(wParam));
             break;
 
-        case HotkeyID::HotkeyIDKeepShowWindow:
+        case HotkeyID::HotkeyIDKeepShowingWindow:
             handleShowWindow(static_cast<HotkeyID>(wParam));
             break;
         }

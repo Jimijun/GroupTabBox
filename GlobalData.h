@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Configure.h"
 #include "MainWindow.h"
 #include "ThumbnailWindow.h"
 #include "UIParam.h"
@@ -25,7 +26,8 @@ public:
     const MONITORINFOEX &monitorInfo() const { return m_monitor_info; }
     const std::vector<HMONITOR> &monitors() const { return m_monitors; }
     REAL monitorScale() const { return m_monitor_scale; }
-    const UIParam &UI() const { return m_ui; }
+    const Configure *config() const { return m_config.get(); }
+    const UIParam *UI() const { return m_ui.get(); }
     const std::vector<WindowHandle> &windows() const { return m_windows; }
     const std::vector<std::vector<WindowHandle *>> &windowGroups() const { return m_window_groups; }
     const std::vector<WindowHandle *> &windowsFromGroup(const std::wstring &group_name) const;
@@ -55,7 +57,8 @@ private:
     std::vector<HMONITOR> m_monitors;
     REAL m_monitor_scale = 1.f;
 
-    UIParam m_ui;
+    std::unique_ptr<Configure> m_config = nullptr;
+    std::unique_ptr<UIParam> m_ui = nullptr;
 
     std::vector<WindowHandle> m_windows;
     std::unordered_map<std::wstring, size_t> m_group_index;

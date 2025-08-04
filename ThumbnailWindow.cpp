@@ -212,10 +212,10 @@ void ThumbnailWindowBase::setSelected(const LayoutItem *item)
     if (!item || m_selected == item)
         return;
 
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     // calculate dirty region
-    const int margin = ui.selectFrameMargin() + (ui.selectFrameWidth() / 2) + 1;
+    const int margin = ui->selectFrameMargin() + (ui->selectFrameWidth() / 2) + 1;
     if (m_selected) {
         RectF rect = m_selected->rect();
         rect.Inflate(margin, margin);
@@ -232,10 +232,10 @@ void ThumbnailWindowBase::setSelected(const LayoutItem *item)
     if (!m_view_rect.Contains(selected_rect)) {
         RectF next_view_rect = m_view_rect;
         if (selected_rect.Y < next_view_rect.Y) {
-            next_view_rect.Y = max(selected_rect.Y - ui.itemVMargin(), 0);
+            next_view_rect.Y = max(selected_rect.Y - ui->itemVMargin(), 0);
         } else if (selected_rect.GetBottom() > next_view_rect.GetBottom()) {
             next_view_rect.Y = min(
-                    selected_rect.GetBottom() + ui.itemVMargin() - m_view_rect.Height,
+                    selected_rect.GetBottom() + ui->itemVMargin() - m_view_rect.Height,
                     m_layout_manager->rect().Height - m_view_rect.Height);
         }
         updateView(next_view_rect);
@@ -248,14 +248,14 @@ void ThumbnailWindowBase::setSelected(const LayoutItem *item)
 void ThumbnailWindowBase::beforeDrawContent(Graphics *graphics)
 {
     // clear dirty region
-    const Gdiplus::Color back_color(globalData()->UI().backgroundColor());
+    const Gdiplus::Color back_color(globalData()->UI()->backgroundColor());
     Gdiplus::SolidBrush back_brush(back_color);
     graphics->FillRegion(&back_brush, &m_dirty_region);
 }
 
 void ThumbnailWindowBase::drawContent(Graphics *graphics)
 {
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     // draw item info
     RectF bound_rect;
@@ -269,8 +269,8 @@ void ThumbnailWindowBase::drawContent(Graphics *graphics)
     // draw select frame
     if (m_selected && m_dirty_region.IsVisible(m_selected->rect())) {
         RectF select_rect = m_selected->rect();
-        select_rect.Inflate(ui.selectFrameMargin(), ui.selectFrameMargin());
-        Gdiplus::Pen select_pen(Gdiplus::Color(ui.selectFrameColor()), ui.selectFrameWidth());
+        select_rect.Inflate(ui->selectFrameMargin(), ui->selectFrameMargin());
+        Gdiplus::Pen select_pen(Gdiplus::Color(ui->selectFrameColor()), ui->selectFrameWidth());
         graphics->DrawRectangle(&select_pen, select_rect);
     }
 }
@@ -311,7 +311,7 @@ void ThumbnailWindowBase::handleMouseWheel(short delta, int x, int y)
         return;
 
     RectF next_view_rect = m_view_rect;
-    next_view_rect.Offset(0, -delta * globalData()->UI().wheelDeltaPixel());
+    next_view_rect.Offset(0, -delta * (30.f / 120.f));
     if (next_view_rect.Y < 0)
         next_view_rect.Y = 0;
     if (next_view_rect.GetBottom() > layout_rect.GetBottom())
@@ -407,12 +407,12 @@ void GroupThumbnailWindow::beforeDrawContent(Graphics *graphics)
 {
     ThumbnailWindowBase::beforeDrawContent(graphics);
 
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     RectF bound_rect;
     m_dirty_region.GetBounds(&bound_rect, graphics);
     std::vector<const LayoutItem *> items = m_layout_manager->intersectItems(bound_rect);
-    Gdiplus::SolidBrush brush{Gdiplus::Color(ui.gridItemShadowColor())};
+    Gdiplus::SolidBrush brush{Gdiplus::Color(ui->gridItemShadowColor())};
 
     const float scale = globalData()->monitorScale();
     for (const auto &item : items) {
@@ -423,11 +423,11 @@ void GroupThumbnailWindow::beforeDrawContent(Graphics *graphics)
         if (multipleWindowsInGroup(item->windowHandle()->exePath())) {
             RectF rect = item->rect();
             rect.Offset(10 * scale, 10 * scale);
-            brush.SetColor(Gdiplus::Color(ui.gridItemShadowColor()));
+            brush.SetColor(Gdiplus::Color(ui->gridItemShadowColor()));
             graphics->FillRectangle(&brush, rect);
             rect.Width -= 7 * scale;
             rect.Height -= 7 * scale;
-            brush.SetColor(Gdiplus::Color(ui.backgroundColor()));
+            brush.SetColor(Gdiplus::Color(ui->backgroundColor()));
             graphics->FillRectangle(&brush, rect);
         }
     }

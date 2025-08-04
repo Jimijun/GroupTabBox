@@ -35,7 +35,7 @@ std::vector<const LayoutItem *> GridLayoutManager::intersectItems(const RectF &r
     // ignore rows above
     size_t row = 0;
     for (REAL y = 0; row < m_highest.size(); ++row) {
-        y += m_highest[row] + globalData()->UI().gridEdgeVMargin();
+        y += m_highest[row] + globalData()->UI()->gridEdgeVMargin();
         if (y > rect.Y)
             break;
     }
@@ -108,47 +108,47 @@ const LayoutItem *GridLayoutManager::getPrevItem(const LayoutItem *item) const
 
 void GridLayoutManager::addItem(WindowHandle *window)
 {
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     window->updateAttributes();
     const RectF &window_rect = window->rect();
     const SizeF &scaled_size = LayoutItem::scaledSize(
             window_rect.Width, window_rect.Height,
-            ui.gridItemMaxWidth(), ui.gridItemMaxHeight(), ui.gridBarHeight());
+            ui->gridItemMaxWidth(), ui->gridItemMaxHeight(), ui->gridBarHeight());
     RectF rect(PointF(), scaled_size);
-    rect.Width = max(rect.Width, ui.listItemMinWidth());
+    rect.Width = max(rect.Width, ui->listItemMinWidth());
 
     if (m_items.empty()) {
         // first item
         m_items.push_back({});
-        rect.X = ui.gridEdgeHMargin();
-        rect.Y = ui.gridEdgeVMargin();
+        rect.X = ui->gridEdgeHMargin();
+        rect.Y = ui->gridEdgeVMargin();
         m_widest = scaled_size.Width;
         m_highest.push_back(scaled_size.Height);
     } else {
         const RectF &last_rect = m_items.back().back().rect();
-        if (last_rect.GetRight() + ui.itemHMargin() + scaled_size.Width
-                <= m_width_limit - ui.gridEdgeHMargin()) {
+        if (last_rect.GetRight() + ui->itemHMargin() + scaled_size.Width
+                <= m_width_limit - ui->gridEdgeHMargin()) {
             // append to last row
-            rect.X = last_rect.GetRight() + ui.itemHMargin();
+            rect.X = last_rect.GetRight() + ui->itemHMargin();
             rect.Y = last_rect.Y;
             m_highest.back() = max(m_highest.back(), scaled_size.Height);
         } else {
             // start a new row
             m_items.push_back({});
-            rect.X = ui.gridEdgeHMargin();
-            rect.Y = last_rect.Y + m_highest.back() + ui.itemVMargin();
+            rect.X = ui->gridEdgeHMargin();
+            rect.Y = last_rect.Y + m_highest.back() + ui->itemVMargin();
             m_highest.push_back(scaled_size.Height);
         }
     }
 
-    m_items.back().emplace_back(window, rect, ui.gridBarHeight());
+    m_items.back().emplace_back(window, rect, ui->gridBarHeight());
     m_widest = max(m_widest, rect.GetRight() - m_items.back().front().rect().X);
 }
 
 void GridLayoutManager::alignItems()
 {
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     if (m_items.empty() || m_items[0].empty()) {
         m_rect = { 0, 0, 0, 0 };
@@ -167,8 +167,8 @@ void GridLayoutManager::alignItems()
     }
     m_rect = {
         0, 0,
-        m_widest + ui.gridEdgeHMargin() * 2,
-        m_items.back().back().rect().Y + m_highest.back() + ui.gridEdgeVMargin()
+        m_widest + ui->gridEdgeHMargin() * 2,
+        m_items.back().back().rect().Y + m_highest.back() + ui->gridEdgeVMargin()
     };
 }
 
@@ -212,38 +212,38 @@ const LayoutItem *ListLayoutManager::itemFromPoint(const PointF &point) const
 
 void ListLayoutManager::addItem(WindowHandle *window)
 {
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     window->updateAttributes();
     const RectF &window_rect = window->rect();
     const SizeF &scaled_size = LayoutItem::scaledSize(
             window_rect.Width, window_rect.Height,
-            ui.listItemMaxWidth(), ui.listItemMaxHeight(), ui.listBarHeight());
+            ui->listItemMaxWidth(), ui->listItemMaxHeight(), ui->listBarHeight());
     RectF rect(PointF(), scaled_size);
-    rect.Width = max(rect.Width, ui.listItemMinWidth());
+    rect.Width = max(rect.Width, ui->listItemMinWidth());
 
     if (m_items.empty()) {
-        rect.X = ui.listEdgeHMargin();
-        rect.Y = ui.listEdgeVMargin();
+        rect.X = ui->listEdgeHMargin();
+        rect.Y = ui->listEdgeVMargin();
     } else {
         const RectF &last_rect = m_items.back().rect();
         rect.X = last_rect.X;
-        rect.Y = last_rect.GetBottom() + ui.itemVMargin();
+        rect.Y = last_rect.GetBottom() + ui->itemVMargin();
     }
 
-    m_items.emplace_back(window, rect, ui.listBarHeight());
+    m_items.emplace_back(window, rect, ui->listBarHeight());
 }
 
 void ListLayoutManager::alignItems()
 {
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     if (m_items.empty()) {
         m_rect = { 0, 0, 0, 0 };
         return;
     }
 
-    m_widest = ui.listItemMaxWidth();
+    m_widest = ui->listItemMaxWidth();
     // align horizontally center of each row
     for (LayoutItem &item : m_items) {
         RectF item_rect = item.rect();
@@ -252,8 +252,8 @@ void ListLayoutManager::alignItems()
     }
     m_rect = {
         0, 0,
-        m_widest + ui.listEdgeHMargin() * 2,
-        m_items.back().rect().GetBottom() + ui.listEdgeVMargin()
+        m_widest + ui->listEdgeHMargin() * 2,
+        m_items.back().rect().GetBottom() + ui->listEdgeVMargin()
     };
 }
 

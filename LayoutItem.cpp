@@ -31,9 +31,9 @@ LayoutItem::LayoutItem(WindowHandle *window, const RectF &rect, const REAL bar_h
         thumbnail_size.Width, thumbnail_size.Height
     };
 
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
     m_icon_rect = { m_rect.X, m_rect.Y, bar_height, bar_height };
-    m_icon_rect.Inflate(-ui.itemIconMargin(), -ui.itemIconMargin());
+    m_icon_rect.Inflate(-ui->itemIconMargin(), -ui->itemIconMargin());
 
     // initialize icon bitmap data
     HICON icon = m_window->icon();
@@ -54,10 +54,10 @@ void LayoutItem::drawInfo(Graphics *graphics) const
     if (!graphics)
         return;
 
-    const UIParam &ui = globalData()->UI();
+    const UIParam *ui = globalData()->UI();
 
     // draw background
-    Gdiplus::SolidBrush back_brush{Gdiplus::Color(ui.itemBackgroundColor())};
+    Gdiplus::SolidBrush back_brush{Gdiplus::Color(ui->itemBackgroundColor())};
     graphics->FillRectangle(&back_brush, m_rect);
 
     // draw icon
@@ -69,11 +69,11 @@ void LayoutItem::drawInfo(Graphics *graphics) const
     format.SetTrimming(Gdiplus::StringTrimming::StringTrimmingEllipsisCharacter);
     format.SetLineAlignment(Gdiplus::StringAlignment::StringAlignmentCenter);
     format.SetAlignment(Gdiplus::StringAlignment::StringAlignmentNear);
-    Gdiplus::Font font(ui.itemFontName(), ui.itemFontSize());
+    Gdiplus::Font font(ui->itemFontName().c_str(), ui->itemFontSize());
     Gdiplus::SolidBrush text_brush(Gdiplus::Color::White);
     RectF title_rect = {
-        m_icon_rect.GetRight() + ui.itemIconMargin() * 2, m_icon_rect.Y,
-        m_rect.Width - m_icon_rect.Width - ui.itemIconMargin() * 4, m_icon_rect.Height
+        m_icon_rect.GetRight() + ui->itemIconMargin() * 2, m_icon_rect.Y,
+        m_rect.Width - m_icon_rect.Width - ui->itemIconMargin() * 4, m_icon_rect.Height
     };
     graphics->DrawString(m_window->title().c_str(), -1, &font, title_rect, &format, &text_brush);
 }

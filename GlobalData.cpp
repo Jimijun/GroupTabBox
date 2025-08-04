@@ -45,11 +45,11 @@ RectF GlobalData::groupWindowLimitRect() const
     RECT rc_work = monitorInfo().rcWork;
     RectF work_rect(rc_work.left, rc_work.top,
             rc_work.right - rc_work.left, rc_work.bottom - rc_work.top);
-    work_rect.Width -= m_ui.listWindowWidthLimit();
-    rect.Width = max(work_rect.Width * m_ui.groupWindowWidthLimitRadio(),
-            m_ui.gridItemMaxWidth() + m_ui.itemHMargin() * 2);
-    rect.Height = max(work_rect.Height * m_ui.groupWindowHeightLimitRadio(),
-            m_ui.gridItemMaxHeight() + m_ui.itemVMargin() * 2);
+    work_rect.Width -= m_ui->listWindowWidthLimit();
+    rect.Width = max(work_rect.Width * m_ui->groupWindowWidthLimitRadio(),
+            m_ui->gridItemMaxWidth() + m_ui->itemHMargin() * 2);
+    rect.Height = max(work_rect.Height * m_ui->groupWindowHeightLimitRadio(),
+            m_ui->gridItemMaxHeight() + m_ui->itemVMargin() * 2);
     rect.X = work_rect.X + (work_rect.Width - rect.Width) / 2;
     rect.Y = work_rect.Y + (work_rect.Height - rect.Height) / 2;
     return rect;
@@ -61,8 +61,8 @@ RectF GlobalData::listWindowLimitRect() const
         return RectF();
 
     RECT rc_work = monitorInfo().rcWork;
-    return RectF(rc_work.right - m_ui.listWindowWidthLimit(), rc_work.top,
-            m_ui.listWindowWidthLimit(), rc_work.bottom - rc_work.top);
+    return RectF(rc_work.right - m_ui->listWindowWidthLimit(), rc_work.top,
+            m_ui->listWindowWidthLimit(), rc_work.bottom - rc_work.top);
 }
 
 void GlobalData::setCurrentMonitor(HMONITOR monitor)
@@ -77,12 +77,25 @@ void GlobalData::setCurrentMonitor(HMONITOR monitor)
     UINT dpi;
     GetDpiForMonitor(m_current_monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi);
     m_monitor_scale = dpi / 96.0f;
-    m_ui.update(m_monitor_scale);
+    m_ui->update(m_monitor_scale);
 }
 
 bool GlobalData::initialize(HINSTANCE instance)
 {
     m_hinstance = instance;
+
+    if (!m_config) {
+        m_config = std::make_unique<Configure>();
+        if (!m_config)
+            return false;
+    }
+    m_config->load();
+
+    if (!m_ui) {
+        m_ui = std::make_unique<UIParam>();
+        if (!m_ui)
+            return false;
+    }
 
     if (!m_main_window) {
         m_main_window = std::make_unique<MainWindow>();
