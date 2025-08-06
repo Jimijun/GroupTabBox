@@ -188,13 +188,11 @@ LRESULT GlobalData::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 void GlobalData::activateWindow(const WindowHandle *window)
 {
-    if (!window)
-        return;
-
-    window->activate();
-
     if (m_group_window)
         m_group_window->hide();
     if (m_list_window)
         m_list_window->hide();
+
+    if (window)
+        window->activate();
 }

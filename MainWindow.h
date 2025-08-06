@@ -18,12 +18,12 @@ public:
 private:
     enum HotkeyID
     {
-        HotkeyIDGroupSelectNext = 0,
-        HotkeyIDGroupSelectPrev,
-        HotkeyIDWindowSelectNext,
-        HotkeyIDWindowSelectPrev,
-        HotkeyIDMonitorSelectNext,
-        HotkeyIDMonitorSelectPrev,
+        HotkeyIDSwitchGroup = 0,
+        HotkeyIDSwitchPrevGroup,
+        HotkeyIDSwitchWindow,
+        HotkeyIDSwitchPrevWindow,
+        HotkeyIDSwitchMonitor,
+        HotkeyIDSwitchPrevMonitor,
         HotkeyIDKeepShowingWindow
     };
 

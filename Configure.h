@@ -17,13 +17,13 @@ public:
     const std::string &fontFamily() const { return m_font_family; }
     float fontSize() const { return m_font_size; }
 
-    const HotkeyPair &switchGroupHotkey() const { return m_switch_group_hotkey; }
-    const HotkeyPair &switchPrevGroupHotkey() const { return m_switch_prev_group_hotkey; }
-    const HotkeyPair &switchWindowHotkey() const { return m_switch_window_hotkey; }
-    const HotkeyPair &switchPrevWindowHotkey() const { return m_switch_prev_window_hotkey; }
-    const HotkeyPair &switchMonitorHotkey() const { return m_switch_monitor_hotkey; }
-    const HotkeyPair &switchPrevMonitorHotkey() const { return m_switch_prev_monitor_hotkey; }
-    const HotkeyPair &keepShowingWindowHotkey() const { return m_keep_showing_window; }
+    UINT switchGroupkey() const { return m_switch_group_key; }
+    bool enablePrevGroupHotkey() const { return m_enable_prev_group_hotkey; }
+    UINT switchWindowkey() const { return m_switch_window_key; }
+    bool enablePrevWindowHotkey() const { return m_enable_prev_window_hotkey; }
+    UINT switchMonitorkey() const { return m_switch_monitor_key; }
+    bool enablePrevMonitorHotkey() const { return m_enable_prev_monitor_hotkey; }
+    const HotkeyPair &keepShowingHotkey() const { return m_keep_showing_hotkey; }
 
     bool load();
 
@@ -36,11 +36,11 @@ private:
     float m_font_size = 8;
 
     // hotkeys settings
-    HotkeyPair m_switch_group_hotkey = { MOD_ALT, VK_F1 };
-    HotkeyPair m_switch_prev_group_hotkey = { 0, 0 };
-    HotkeyPair m_switch_window_hotkey = { MOD_ALT, VK_F2 };
-    HotkeyPair m_switch_prev_window_hotkey = { 0, 0 };
-    HotkeyPair m_switch_monitor_hotkey = { MOD_ALT, VK_F3 };
-    HotkeyPair m_switch_prev_monitor_hotkey = { 0, 0 };
-    HotkeyPair m_keep_showing_window = { 0, 0 };
+    UINT m_switch_group_key = VK_F1;
+    bool m_enable_prev_group_hotkey = false;
+    UINT m_switch_window_key = VK_F2;
+    bool m_enable_prev_window_hotkey = false;
+    UINT m_switch_monitor_key = VK_F3;
+    bool m_enable_prev_monitor_hotkey = false;
+    HotkeyPair m_keep_showing_hotkey = { 0, 0 };
 };

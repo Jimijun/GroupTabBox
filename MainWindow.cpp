@@ -32,12 +32,12 @@ static HMONITOR monitorFromCursor()
 MainWindow::~MainWindow()
 {
     if (m_hwnd) {
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectNext);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDGroupSelectPrev);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectNext);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDWindowSelectPrev);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectNext);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDMonitorSelectPrev);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchGroup);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevGroup);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchWindow);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevWindow);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchMonitor);
+        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevMonitor);
         UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowingWindow);
 
         DestroyWindow(m_hwnd);
@@ -59,25 +59,27 @@ bool MainWindow::create(HINSTANCE instance)
 
     const Configure *config = globalData()->config();
     bool success = true;
-    const Configure::HotkeyPair *hotkey_pair;
 
-#define REGISTER_HELPER(pair, id) \
-    hotkey_pair = pair; \
-    if (hotkey_pair->first && hotkey_pair->second) \
-        success &= RegisterHotKey(m_hwnd, id, hotkey_pair->first, hotkey_pair->second)
+#define REGISTER_HELPER(id, key, enable_prev, prev_id) \
+    if (key != 0) success &= RegisterHotKey(m_hwnd, id, MOD_ALT, key); \
+    if (enable_prev) success &= RegisterHotKey(m_hwnd, prev_id, MOD_ALT | MOD_SHIFT, key); \
+    if (!success) return false
 
-    REGISTER_HELPER(&config->switchGroupHotkey(), HotkeyID::HotkeyIDGroupSelectNext);
-    REGISTER_HELPER(&config->switchPrevGroupHotkey(), HotkeyID::HotkeyIDGroupSelectPrev);
-    REGISTER_HELPER(&config->switchWindowHotkey(), HotkeyID::HotkeyIDWindowSelectNext);
-    REGISTER_HELPER(&config->switchPrevWindowHotkey(), HotkeyID::HotkeyIDWindowSelectPrev);
-    REGISTER_HELPER(&config->switchMonitorHotkey(), HotkeyID::HotkeyIDMonitorSelectNext);
-    REGISTER_HELPER(&config->switchPrevMonitorHotkey(), HotkeyID::HotkeyIDMonitorSelectPrev);
-    REGISTER_HELPER(&config->keepShowingWindowHotkey(), HotkeyID::HotkeyIDKeepShowingWindow);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config->switchGroupkey(),
+            config->enablePrevGroupHotkey(), HotkeyID::HotkeyIDSwitchPrevGroup);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchWindow, config->switchWindowkey(),
+            config->enablePrevWindowHotkey(), HotkeyID::HotkeyIDSwitchPrevWindow);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchMonitor, config->switchMonitorkey(),
+            config->enablePrevMonitorHotkey(), HotkeyID::HotkeyIDSwitchPrevMonitor);
 
 #undef REGISTER_HELPER
 
-    if (!success)
-        return false;
+    const Configure::HotkeyPair &hotkey_pair = config->keepShowingHotkey();
+    if (hotkey_pair.first != 0 && hotkey_pair.second != 0) {
+        if (!RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowingWindow,
+                hotkey_pair.first, hotkey_pair.second))
+            return false;
+    }
 
     // add tray icon
     NOTIFYICONDATA nid;
@@ -111,18 +113,18 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_HOTKEY:
         switch (static_cast<HotkeyID>(wParam)) {
-        case HotkeyID::HotkeyIDGroupSelectNext:
-        case HotkeyID::HotkeyIDGroupSelectPrev:
+        case HotkeyID::HotkeyIDSwitchGroup:
+        case HotkeyID::HotkeyIDSwitchPrevGroup:
             handleSwitchGroup(static_cast<HotkeyID>(wParam));
             break;
 
-        case HotkeyID::HotkeyIDWindowSelectNext:
-        case HotkeyID::HotkeyIDWindowSelectPrev:
+        case HotkeyID::HotkeyIDSwitchWindow:
+        case HotkeyID::HotkeyIDSwitchPrevWindow:
             handleSwitchWindow(static_cast<HotkeyID>(wParam));
             break;
 
-        case HotkeyID::HotkeyIDMonitorSelectNext:
-        case HotkeyID::HotkeyIDMonitorSelectPrev:
+        case HotkeyID::HotkeyIDSwitchMonitor:
+        case HotkeyID::HotkeyIDSwitchPrevMonitor:
             handleSwitchMonitor(static_cast<HotkeyID>(wParam));
             break;
 
@@ -172,7 +174,7 @@ void MainWindow::handleSwitchGroup(HotkeyID kid)
     }
 
     if (group->visible()) {
-        if (kid == HotkeyID::HotkeyIDGroupSelectNext) {
+        if (kid == HotkeyID::HotkeyIDSwitchGroup) {
             group->selectNext();
         } else {
             group->selectPrev();
@@ -206,7 +208,7 @@ void MainWindow::handleSwitchWindow(HotkeyID kid)
     }
 
     if (list->visible()) {
-        if (kid == HotkeyID::HotkeyIDWindowSelectNext) {
+        if (kid == HotkeyID::HotkeyIDSwitchWindow) {
             list->selectNext();
         } else {
             list->selectPrev();
@@ -234,7 +236,7 @@ void MainWindow::handleSwitchMonitor(HotkeyID kid)
 
     const std::vector<HMONITOR> &monitors = globalData()->monitors();
     HMONITOR current_monitor = globalData()->currentMonitor();
-    if (kid == HotkeyID::HotkeyIDMonitorSelectNext) {
+    if (kid == HotkeyID::HotkeyIDSwitchMonitor) {
         auto it = std::find(monitors.begin(), monitors.end(), current_monitor);
         if (it == monitors.end())
             return;

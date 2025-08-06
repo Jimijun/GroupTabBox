@@ -109,8 +109,11 @@ void ThumbnailWindowBase::hide()
 
 void ThumbnailWindowBase::activateSelected()
 {
-    if (m_selected)
+    if (m_selected) {
         globalData()->activateWindow(m_selected->windowHandle());
+    } else {
+        globalData()->activateWindow(nullptr);
+    }
 }
 
 void ThumbnailWindowBase::selectNext()
@@ -456,7 +459,9 @@ void GroupThumbnailWindow::handleMouseWheel(short delta, int x, int y)
 void GroupThumbnailWindow::handleLButtonUp(int x, int y)
 {
     ThumbnailWindowBase::handleLButtonUp(x, y);
-    if (m_selected && !multipleWindowsInGroup(m_selected->windowHandle()->exePath()))
+    y += m_view_rect.Y;
+    if (m_selected && m_selected->rect().Contains(x, y)
+            && !multipleWindowsInGroup(m_selected->windowHandle()->exePath()))
         activateSelected();
 }
 

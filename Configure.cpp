@@ -9,11 +9,16 @@ using SettingPair = std::pair<std::string, std::string>;
 
 const char *kConfigFile = "GroupTabBox.ini";
 
-template <typename T>
-static void writeIntoMember(const std::string &str, T *ptr) {}
+const std::unordered_map<std::string, UINT> kModifierMap = {
+    { "SHIFT", MOD_SHIFT }, { "CTRL", MOD_CONTROL }, { "ALT", MOD_ALT }
+};
+const std::unordered_map<std::string, UINT> kKeyMap = {
+    { "F1", VK_F1 }, { "F2", VK_F2 }, { "F3", VK_F3 }, { "F4", VK_F4 },
+    { "F5", VK_F5 }, { "F6", VK_F6 }, { "F7", VK_F7 }, { "F8", VK_F8 },
+    { "F9", VK_F9 }, { "F10", VK_F10 }, { "F11", VK_F11 }, { "F12", VK_F12 }
+};
 
-template<>
-static void writeIntoMember<bool>(const std::string &value_str, bool *mem_ptr)
+static void writeIntoMember(const std::string &value_str, bool *mem_ptr)
 {
     if (value_str.length() != 1 || !mem_ptr)
         return;
@@ -24,27 +29,21 @@ static void writeIntoMember<bool>(const std::string &value_str, bool *mem_ptr)
     }
 }
 
-template<>
-static void writeIntoMember<float>(const std::string &value_str, float *mem_ptr)
+static void writeIntoMember(const std::string &value_str, float *mem_ptr)
 {
     if (value_str.empty() || !mem_ptr )
         return;
     *mem_ptr = std::stof(value_str);
 }
 
-template<>
-static void writeIntoMember<Configure::HotkeyPair>(const std::string &value_str,
-        Configure::HotkeyPair *mem_ptr)
+static void writeIntoMember(const std::string &value_str, UINT *mem_ptr)
 {
-    static const std::unordered_map<std::string, UINT> modifier_map = {
-        { "SHIFT", MOD_SHIFT }, { "CTRL", MOD_CONTROL }, { "ALT", MOD_ALT }
-    };
-    static const std::unordered_map<std::string, UINT> key_map = {
-        { "F1", VK_F1 }, { "F2", VK_F2 }, { "F3", VK_F3 }, { "F4", VK_F4 },
-        { "F5", VK_F5 }, { "F6", VK_F6 }, { "F7", VK_F7 }, { "F8", VK_F8 },
-        { "F9", VK_F9 }, { "F10", VK_F10 }, { "F11", VK_F11 }, { "F12", VK_F12 }
-    };
+    if (value_str.empty() || !mem_ptr )
+        return;
+}
 
+static void writeIntoMember(const std::string &value_str, Configure::HotkeyPair *mem_ptr)
+{
     if (value_str.empty() || !mem_ptr || value_str == "0")
         return;
 
@@ -65,8 +64,8 @@ static void writeIntoMember<Configure::HotkeyPair>(const std::string &value_str,
     // parse key
     std::string key = std::move(tokens.back());
     tokens.pop_back();
-    auto it = key_map.find(key);
-    if (it != key_map.end()) {  // Fn keys
+    auto it = kKeyMap.find(key);
+    if (it != kKeyMap.end()) {  // Fn keys
         mem_ptr->second = it->second;
     } else if (key.length() == 1 &&
             (key[0] >= 'A' && key[0] <= 'Z' || key[0] >= '0' && key[0] <= '9')) {
@@ -78,8 +77,8 @@ static void writeIntoMember<Configure::HotkeyPair>(const std::string &value_str,
 
     // parse modifiers
     while (!tokens.empty()) {
-        it = modifier_map.find(tokens.back());
-        if (it == modifier_map.end()) {
+        it = kModifierMap.find(tokens.back());
+        if (it == kModifierMap.end()) {
             *mem_ptr = backup;
             return;
         }
@@ -96,16 +95,23 @@ static void parseString(const SettingPair &setting_pair, void *mem_ptr)
 
     switch (setting_pair.first[0]) {
     case 'b':
-        writeIntoMember<bool>(setting_pair.second, static_cast<bool *>(mem_ptr));
+        writeIntoMember(setting_pair.second, static_cast<bool *>(mem_ptr));
         break;
 
     case 'f':
-        writeIntoMember<float>(setting_pair.second, static_cast<float *>(mem_ptr));
+        writeIntoMember(setting_pair.second, static_cast<float *>(mem_ptr));
+        break;
+
+    case 'k':
+        writeIntoMember(setting_pair.second, static_cast<UINT *>(mem_ptr));
         break;
 
     case 'h':
-        writeIntoMember<Configure::HotkeyPair>(setting_pair.second,
-                static_cast<Configure::HotkeyPair *>(mem_ptr));
+        writeIntoMember(setting_pair.second, static_cast<Configure::HotkeyPair *>(mem_ptr));
+        break;
+
+    case 's':
+        *static_cast<std::string *>(mem_ptr) = setting_pair.second;
         break;
 
     default:
@@ -145,13 +151,13 @@ bool Configure::load()
             { "fFontSize", &m_font_size },
         },
         ConfigMap{  // Hotkeys
-            { "hSwitchGroupHotkey", &m_switch_group_hotkey },
-            { "hSwitchPrevGroupHotkey", &m_switch_prev_group_hotkey },
-            { "hSwitchWindowHotkey", &m_switch_window_hotkey },
-            { "hSwitchPrevWindowHotkey", &m_switch_prev_window_hotkey },
-            { "hSwitchMonitorHotkey", &m_switch_monitor_hotkey },
-            { "hSwitchPrevMonitorHotkey", &m_switch_prev_monitor_hotkey },
-            { "hKeepShowingWindow", &m_keep_showing_window },
+            { "kSwitchGroupkey", &m_switch_group_key },
+            { "bEnablePrevGroupHotkey", &m_enable_prev_group_hotkey },
+            { "kSwitchWindowkey", &m_switch_window_key },
+            { "bEnablePrevWindowHotkey", &m_enable_prev_window_hotkey },
+            { "kSwitchMonitorkey", &m_switch_monitor_key },
+            { "bEnablePrevMonitorHotkey", &m_enable_prev_monitor_hotkey },
+            { "hKeepShowingHotkey", &m_keep_showing_hotkey },
         },
     };
 
