@@ -143,6 +143,7 @@ void ThumbnailWindowBase::show(bool keep)
     m_monitor = globalData()->currentMonitor();
     initializeLayout();
 
+    initializeBitmap();
     updateBitmap(true);
     updateView({ 0, 0, m_rect.Width, m_rect.Height });
 
@@ -167,7 +168,6 @@ void ThumbnailWindowBase::hide()
     updateView({});
     ShowWindow(m_hwnd.get(), SW_HIDE);
     ShowWindow(m_fore_hwnd.get(), SW_HIDE);
-    m_bitmap.reset();
     m_visible = false;
 }
 
@@ -251,7 +251,8 @@ void ThumbnailWindowBase::updateView(const RectF &next_view_rect)
     std::vector<const LayoutItem *> next_items = m_layout_manager->intersectItems(next_view_rect);
     // hide invisible items
     for (const auto &item : current_items) {
-        if (std::find(next_items.begin(), next_items.end(), item) == next_items.end())
+        if (std::find(next_items.begin(), next_items.end(), item) == next_items.end()
+                || !next_view_rect.IntersectsWith(item->thumbnailRect()))
             item->windowHandle()->hideThumbnail(m_fore_hwnd.get());
     }
 
@@ -363,9 +364,11 @@ void ThumbnailWindowBase::handlePaint(HWND hwnd, HDC hdc)
         if (!m_thumbnail_updated && m_layout_manager) {
             const std::vector<const LayoutItem *> items = m_layout_manager->intersectItems(m_view_rect);
             for (const auto &item : items) {
-                RectF rect = item->thumbnailRect();
-                rect.Offset(-m_view_rect.X + 1, -m_view_rect.Y + 1);
-                item->windowHandle()->showThumbnail(m_fore_hwnd.get(), rect);
+                if (m_view_rect.IntersectsWith(item->thumbnailRect())) {
+                    RectF rect = item->thumbnailRect();
+                    rect.Offset(-m_view_rect.X + 1, -m_view_rect.Y + 1);
+                    item->windowHandle()->showThumbnail(m_fore_hwnd.get(), rect);
+                }
             }
             m_thumbnail_updated = true;
         }
