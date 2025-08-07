@@ -4,17 +4,44 @@
 #include <gdiplus.h>
 #include <windowsx.h>
 
+static void enableBlur(HWND hwnd)
+{
+    HMODULE handle = GetModuleHandle(L"user32.dll");
+    if(handle) {
+        enum WINDOWCOMPOSITIONATTRIB { WCA_ACCENT_POLICY = 19 };
+        struct WINDOWCOMPOSITIONATTRIBDATA
+        {
+            WINDOWCOMPOSITIONATTRIB Attrib;
+            PVOID pvData;
+            SIZE_T cbData;
+        };
+        enum ACCENT_STATE { ACCENT_ENABLE_BLURBEHIND = 3 };
+        struct ACCENT_POLICY
+        {
+            ACCENT_STATE AccentState;
+            DWORD AccentFlags, GradientColor, AnimationId;
+        };
+
+        BOOL (*func)(HWND hwnd, WINDOWCOMPOSITIONATTRIBDATA *data) =
+                reinterpret_cast<decltype(func)>(GetProcAddress(handle, "SetWindowCompositionAttribute"));
+        if(func){
+            ACCENT_POLICY accent = { ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data = { WCA_ACCENT_POLICY, &accent, sizeof(accent) };
+            func(hwnd, &data);
+        }
+    }
+}
+
 ThumbnailWindowBase::~ThumbnailWindowBase()
 {
     hide();
-    m_bitmap.reset();
-    m_dc.reset();
-    if (m_hwnd)
-        DestroyWindow(m_hwnd);
 }
 
-LRESULT ThumbnailWindowBase::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT ThumbnailWindowBase::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (hwnd != m_hwnd.get() && hwnd != m_fore_hwnd.get())
+        return -1;
+
     switch (uMsg) {
     case WM_DESTROY:
         m_hwnd = nullptr;
@@ -31,9 +58,9 @@ LRESULT ThumbnailWindowBase::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lPar
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(m_hwnd, &ps);
-            handlePaint(hdc);
-            EndPaint(m_hwnd, &ps);
+            HDC hdc = BeginPaint(hwnd, &ps);
+            handlePaint(hwnd, hdc);
+            EndPaint(hwnd, &ps);
         }
         return 0;
 
@@ -55,23 +82,56 @@ LRESULT ThumbnailWindowBase::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lPar
     default:
         break;
     }
-    return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+    return -1;
 }
 
 bool ThumbnailWindowBase::create(HINSTANCE instance)
 {
-    if (m_hwnd)
+    if (m_hwnd && m_fore_hwnd)
         return true;
 
-    m_hwnd = CreateWindowEx(
-        WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-        L"GroupTabBox", L"ThumbnailWindow",
-        WS_POPUPWINDOW,
-        0, 0, 1, 1,
-        nullptr, nullptr, instance, nullptr
-    );
+    m_hwnd =  {
+        CreateWindowEx(
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED,
+            L"GroupTabBox", L"ThumbnailWindow",
+            WS_POPUPWINDOW,
+            0, 0, 1, 1,
+            nullptr, nullptr, instance, nullptr
+        ),
+        DestroyWindow
+    };
+    m_fore_hwnd = {
+        CreateWindowEx(
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+            L"GroupTabBox", L"ForegroundWindow",
+            WS_POPUPWINDOW,
+            0, 0, 1, 1,
+            m_hwnd.get(), nullptr, instance, nullptr
+        ),
+        DestroyWindow
+    };
 
-    return m_hwnd != nullptr;
+    if (m_hwnd && m_fore_hwnd) {
+        const Configure *config = globalData()->config();
+
+        // foreground window's background should be fully transparent
+        SetLayeredWindowAttributes(m_fore_hwnd.get(), RGB(0, 255, 0), 0, LWA_COLORKEY);
+
+        if (config->enableBackgroundBlur()) {
+            // remove WS_EX_LAYERED before blur
+            SetWindowLong(m_hwnd.get(), GWL_EXSTYLE,
+                    GetWindowLong(m_hwnd.get(), GWL_EXSTYLE) & ~WS_EX_LAYERED);
+            enableBlur(m_hwnd.get());
+        } else {
+            // set background alpha
+            float alpha = config->backgroundAlpha();
+            alpha = min(alpha, 1.0f);
+            alpha = max(alpha, 0.0f);
+            SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
+        }
+    }
+
+    return m_hwnd && m_fore_hwnd;
 }
 
 void ThumbnailWindowBase::show(bool keep)
@@ -87,12 +147,15 @@ void ThumbnailWindowBase::show(bool keep)
     updateView({ 0, 0, m_rect.Width, m_rect.Height });
 
     // consider border
-    SetWindowPos(m_hwnd, nullptr, m_rect.X - 1, m_rect.Y - 1,
+    SetWindowPos(m_hwnd.get(), nullptr, m_rect.X - 1, m_rect.Y - 1,
+            m_rect.Width + 2, m_rect.Height + 2, SWP_SHOWWINDOW);
+    SetWindowPos(m_fore_hwnd.get(), nullptr, m_rect.X - 1, m_rect.Y - 1,
             m_rect.Width + 2, m_rect.Height + 2, SWP_SHOWWINDOW);
 
     // show and focus
-    ShowWindow(m_hwnd, SW_SHOW);
-    SetForegroundWindow(m_hwnd);
+    ShowWindow(m_hwnd.get(), SW_SHOW);
+    ShowWindow(m_fore_hwnd.get(), SW_SHOW);
+    SetForegroundWindow(m_hwnd.get());
     m_visible = true;
 }
 
@@ -102,7 +165,8 @@ void ThumbnailWindowBase::hide()
         return;
 
     updateView({});
-    ShowWindow(m_hwnd, SW_HIDE);
+    ShowWindow(m_hwnd.get(), SW_HIDE);
+    ShowWindow(m_fore_hwnd.get(), SW_HIDE);
     m_bitmap.reset();
     m_visible = false;
 }
@@ -126,19 +190,23 @@ void ThumbnailWindowBase::selectPrev()
     setSelected(m_layout_manager->getPrevItem(m_selected));
 }
 
-void ThumbnailWindowBase::requestRepaint()
+void ThumbnailWindowBase::requestRepaint(bool repaint_background)
 {
     if (!visible())
         return;
 
-    InvalidateRect(m_hwnd, nullptr, false);
-    UpdateWindow(m_hwnd);
+    if (repaint_background) {
+        InvalidateRect(m_hwnd.get(), nullptr, false);
+        UpdateWindow(m_hwnd.get());
+    }
+    InvalidateRect(m_fore_hwnd.get(), nullptr, false);
+    UpdateWindow(m_fore_hwnd.get());
 }
 
 void ThumbnailWindowBase::initializeBitmap()
 {
-    auto release_dc = [this](HDC hdc) { ReleaseDC(m_hwnd, hdc); };
-    std::unique_ptr<HDC__, decltype(release_dc)> hdc = { GetDC(m_hwnd), release_dc };
+    auto release_dc = [this](HDC hdc) { ReleaseDC(m_fore_hwnd.get(), hdc); };
+    std::unique_ptr<HDC__, decltype(release_dc)> hdc = { GetDC(m_fore_hwnd.get()), release_dc };
 
     if (!m_dc)
         m_dc = { CreateCompatibleDC(hdc.get()), DeleteDC };
@@ -175,7 +243,7 @@ void ThumbnailWindowBase::updateView(const RectF &next_view_rect)
     // hide all item if next is empty
     if (next_view_rect.IsEmptyArea()) {
         for (const auto &item : current_items)
-            item->windowHandle()->hideThumbnail(m_hwnd);
+            item->windowHandle()->hideThumbnail(m_fore_hwnd.get());
         m_view_rect = { 0, 0, 0, 0 };
         return;
     }
@@ -184,7 +252,7 @@ void ThumbnailWindowBase::updateView(const RectF &next_view_rect)
     // hide invisible items
     for (const auto &item : current_items) {
         if (std::find(next_items.begin(), next_items.end(), item) == next_items.end())
-            item->windowHandle()->hideThumbnail(m_hwnd);
+            item->windowHandle()->hideThumbnail(m_fore_hwnd.get());
     }
 
     m_view_rect = next_view_rect;
@@ -250,8 +318,9 @@ void ThumbnailWindowBase::setSelected(const LayoutItem *item)
 
 void ThumbnailWindowBase::beforeDrawContent(Graphics *graphics)
 {
-    // clear dirty region
-    const Gdiplus::Color back_color(globalData()->UI()->backgroundColor());
+    // fill dirty region with green
+    const Gdiplus::Color bitmap_back_color(0xFF00FF00);
+    const Gdiplus::Color back_color(bitmap_back_color);
     Gdiplus::SolidBrush back_brush(back_color);
     graphics->FillRegion(&back_brush, &m_dirty_region);
 }
@@ -283,20 +352,26 @@ void ThumbnailWindowBase::afterDrawContent(Graphics *graphics)
     m_dirty_region.MakeEmpty();
 }
 
-void ThumbnailWindowBase::handlePaint(HDC hdc)
+void ThumbnailWindowBase::handlePaint(HWND hwnd, HDC hdc)
 {
-    if (!m_thumbnail_updated) {
-        const std::vector<const LayoutItem *> items = m_layout_manager->intersectItems(m_view_rect);
-        for (const auto &item : items) {
-            RectF rect = item->thumbnailRect();
-            rect.Offset(-m_view_rect.X + 1, -m_view_rect.Y + 1);
-            item->windowHandle()->showThumbnail(m_hwnd, rect);
+    if (hwnd == m_hwnd.get()) {
+        // draw background window
+        Graphics graphics(hdc);
+        graphics.Clear(globalData()->UI()->backgroundColor());
+    } else if (hwnd == m_fore_hwnd.get()) {
+        // draw thumbnail
+        if (!m_thumbnail_updated && m_layout_manager) {
+            const std::vector<const LayoutItem *> items = m_layout_manager->intersectItems(m_view_rect);
+            for (const auto &item : items) {
+                RectF rect = item->thumbnailRect();
+                rect.Offset(-m_view_rect.X + 1, -m_view_rect.Y + 1);
+                item->windowHandle()->showThumbnail(m_fore_hwnd.get(), rect);
+            }
+            m_thumbnail_updated = true;
         }
-        m_thumbnail_updated = true;
+        BitBlt(hdc, 0, 0, m_rect.Width, m_rect.Height,
+                m_dc.get(), m_view_rect.X, m_view_rect.Y, SRCCOPY);
     }
-
-    BitBlt(hdc, 0, 0, m_rect.Width, m_rect.Height,
-            m_dc.get(), m_view_rect.X, m_view_rect.Y, SRCCOPY);
 }
 
 void ThumbnailWindowBase::handleLButtonUp(int x, int y)
@@ -332,17 +407,19 @@ void ThumbnailWindowBase::handleKeyUp(WPARAM key)
 
 // --------------------GroupThumbnailWindow---------------------
 
-LRESULT GroupThumbnailWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT GroupThumbnailWindow::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch (uMsg) {
-    case WM_RBUTTONUP:
-        handleRButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        return 0;
+    if (hwnd == m_hwnd.get()) {
+        switch (uMsg) {
+        case WM_RBUTTONUP:
+            handleRButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
 
-    default:
-        break;
+        default:
+            break;
+        }
     }
-    return ThumbnailWindowBase::handleMessage(uMsg, wParam, lParam);
+    return ThumbnailWindowBase::handleMessage(hwnd, uMsg, wParam, lParam);
 }
 
 void GroupThumbnailWindow::activateSelected()
@@ -430,7 +507,7 @@ void GroupThumbnailWindow::beforeDrawContent(Graphics *graphics)
             graphics->FillRectangle(&brush, rect);
             rect.Width -= 7 * scale;
             rect.Height -= 7 * scale;
-            brush.SetColor(Gdiplus::Color(ui->backgroundColor()));
+            brush.SetColor(Gdiplus::Color(0xFF00FF00));
             graphics->FillRectangle(&brush, rect);
         }
     }

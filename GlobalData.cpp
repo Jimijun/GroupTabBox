@@ -168,20 +168,24 @@ LRESULT GlobalData::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 {
     if (uMsg == WM_KILLFOCUS) {
         HWND focus = reinterpret_cast<HWND>(wParam);
-        if (focus != m_group_window->hwnd() && focus != m_list_window->hwnd()) {
+        if (focus != m_group_window->hwnd() && focus != m_group_window->foreHwnd()
+                && focus != m_list_window->hwnd() && focus != m_list_window->foreHwnd()) {
             m_group_window->hide();
             m_list_window->hide();
             return 0;
         }
     }
 
-    if (m_main_window && hwnd == m_main_window->hwnd()) {
-        return m_main_window->handleMessage(uMsg, wParam, lParam);
-    } else if (m_group_window && hwnd == m_group_window->hwnd()) {
-        return m_group_window->handleMessage(uMsg, wParam, lParam);
-    } else if (m_list_window && hwnd == m_list_window->hwnd()) {
-        return m_list_window->handleMessage(uMsg, wParam, lParam);
-    }
+    LRESULT res = -1;
+
+#define HANDLE_MSG(window) \
+    if (window) res = window->handleMessage(hwnd, uMsg, wParam, lParam); \
+    if (res != -1) return res \
+
+    HANDLE_MSG(m_main_window);
+    HANDLE_MSG(m_group_window);
+    HANDLE_MSG(m_list_window);
+#undef HANDLE_MSG
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

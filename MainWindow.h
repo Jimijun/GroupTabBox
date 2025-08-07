@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 
+#include <array>
 #include <memory>
 
 class MainWindow
@@ -9,11 +10,11 @@ class MainWindow
 public:
     ~MainWindow();
 
-    HWND hwnd() const { return m_hwnd; }
+    HWND hwnd() const { return m_hwnd.get(); }
 
     bool create(HINSTANCE instance);
 
-    LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
     enum HotkeyID
@@ -24,7 +25,8 @@ private:
         HotkeyIDSwitchPrevWindow,
         HotkeyIDSwitchMonitor,
         HotkeyIDSwitchPrevMonitor,
-        HotkeyIDKeepShowingWindow
+        HotkeyIDKeepShowingWindow,
+        HotkeyIDNumber
     };
 
     void handleSwitchGroup(HotkeyID kid);
@@ -32,7 +34,8 @@ private:
     void handleSwitchMonitor(HotkeyID kid);
     void handleShowWindow(HotkeyID kid);
 
-    HWND m_hwnd = nullptr;
+    std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_hwnd =  { nullptr, DestroyWindow };
     std::unique_ptr<HMENU__, decltype(&DestroyMenu)> m_tray_menu = { nullptr, DestroyMenu };
+    std::array<bool, HotkeyID::HotkeyIDNumber> m_registered_hotkey = { false };
 };
 

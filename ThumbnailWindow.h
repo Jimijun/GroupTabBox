@@ -18,14 +18,15 @@ public:
     ThumbnailWindowBase() = default;
     virtual ~ThumbnailWindowBase();
 
-    HWND hwnd() const { return m_hwnd; }
+    HWND hwnd() const { return m_hwnd.get(); }
+    HWND foreHwnd() const { return m_fore_hwnd.get(); }
     bool visible() const { return m_visible; }
 
     void selectNext();
     void selectPrev();
     void keepShowing(bool keep) { m_keep_showing = keep; }
 
-    virtual LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    virtual LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     virtual bool create(HINSTANCE instance);
     virtual void show(bool keep);
@@ -33,7 +34,7 @@ public:
     virtual void activateSelected();
 
 protected:
-    void requestRepaint();
+    void requestRepaint(bool repaint_background = false);
     void initializeBitmap();
     void updateBitmap(bool redraw_all = false);
 
@@ -45,12 +46,13 @@ protected:
     virtual void afterDrawContent(Graphics *graphics);
 
     // handle events
-    virtual void handlePaint(HDC hdc);
+    virtual void handlePaint(HWND hwnd, HDC hdc);
     virtual void handleLButtonUp(int x, int y);
     virtual void handleMouseWheel(short delta, int x, int y);
     virtual void handleKeyUp(WPARAM key);
 
-    HWND m_hwnd = nullptr;
+    std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_hwnd = { nullptr, DestroyWindow };
+    std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_fore_hwnd =  { nullptr, DestroyWindow };
     bool m_visible = false;
     bool m_keep_showing = false;
     HMONITOR m_monitor = nullptr;
@@ -69,7 +71,7 @@ protected:
 class GroupThumbnailWindow : public ThumbnailWindowBase
 {
 public:
-    LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
     void activateSelected() override;
 
 private:

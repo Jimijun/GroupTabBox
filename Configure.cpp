@@ -15,7 +15,8 @@ const std::unordered_map<std::string, UINT> kModifierMap = {
 const std::unordered_map<std::string, UINT> kKeyMap = {
     { "F1", VK_F1 }, { "F2", VK_F2 }, { "F3", VK_F3 }, { "F4", VK_F4 },
     { "F5", VK_F5 }, { "F6", VK_F6 }, { "F7", VK_F7 }, { "F8", VK_F8 },
-    { "F9", VK_F9 }, { "F10", VK_F10 }, { "F11", VK_F11 }, { "F12", VK_F12 }
+    { "F9", VK_F9 }, { "F10", VK_F10 }, { "F11", VK_F11 }, { "F12", VK_F12 },
+    { "`", VK_OEM_3 }
 };
 
 static void writeIntoMember(const std::string &value_str, bool *mem_ptr)
@@ -40,6 +41,15 @@ static void writeIntoMember(const std::string &value_str, UINT *mem_ptr)
 {
     if (value_str.empty() || !mem_ptr )
         return;
+
+    auto it = kKeyMap.find(value_str);
+    if (it != kKeyMap.end()) {
+        *mem_ptr = it->second;
+    } else if (value_str.length() == 1
+            && (value_str[0] >= 'A' && value_str[0] <= 'Z'
+                || value_str[0] >= '0' && value_str[0] <= '9')) {
+        *mem_ptr = value_str[0];
+    }
 }
 
 static void writeIntoMember(const std::string &value_str, Configure::HotkeyPair *mem_ptr)
@@ -64,20 +74,11 @@ static void writeIntoMember(const std::string &value_str, Configure::HotkeyPair 
     // parse key
     std::string key = std::move(tokens.back());
     tokens.pop_back();
-    auto it = kKeyMap.find(key);
-    if (it != kKeyMap.end()) {  // Fn keys
-        mem_ptr->second = it->second;
-    } else if (key.length() == 1 &&
-            (key[0] >= 'A' && key[0] <= 'Z' || key[0] >= '0' && key[0] <= '9')) {
-        mem_ptr->second = key[0];
-    } else {
-        *mem_ptr = backup;
-        return;
-    }
+    writeIntoMember(key, &mem_ptr->second);
 
     // parse modifiers
     while (!tokens.empty()) {
-        it = kModifierMap.find(tokens.back());
+        auto it = kModifierMap.find(tokens.back());
         if (it == kModifierMap.end()) {
             *mem_ptr = backup;
             return;
@@ -149,6 +150,8 @@ bool Configure::load()
         ConfigMap{  // UI
             { "sFontFamily", &m_font_family },
             { "fFontSize", &m_font_size },
+            { "fBackgroundAlpha", &m_background_alpha },
+            { "bEnableBackgroundBlur", &m_enable_background_blur },
         },
         ConfigMap{  // Hotkeys
             { "kSwitchGroupkey", &m_switch_group_key },

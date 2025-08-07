@@ -32,15 +32,12 @@ static HMONITOR monitorFromCursor()
 MainWindow::~MainWindow()
 {
     if (m_hwnd) {
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchGroup);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevGroup);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchWindow);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevWindow);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchMonitor);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDSwitchPrevMonitor);
-        UnregisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowingWindow);
-
-        DestroyWindow(m_hwnd);
+        for (int id = 0; id < HotkeyID::HotkeyIDNumber; ++id) {
+            if (m_registered_hotkey[id]) {
+                UnregisterHotKey(m_hwnd.get(), id);
+                m_registered_hotkey[id] = false;
+            }
+        }
     }
 }
 
@@ -49,11 +46,14 @@ bool MainWindow::create(HINSTANCE instance)
     if (m_hwnd)
         return true;
 
-    m_hwnd = CreateWindow(
-        L"GroupTabBox", L"MainWindow",
-        0, 0, 0, 0, 0,
-        HWND_MESSAGE, nullptr, instance, nullptr
-    );
+    m_hwnd = {
+        CreateWindow(
+            L"GroupTabBox", L"MainWindow",
+            0, 0, 0, 0, 0,
+            HWND_MESSAGE, nullptr, instance, nullptr
+        ),
+        DestroyWindow
+    };
     if (!m_hwnd)
         return false;
 
@@ -61,9 +61,10 @@ bool MainWindow::create(HINSTANCE instance)
     bool success = true;
 
 #define REGISTER_HELPER(id, key, enable_prev, prev_id) \
-    if (key != 0) success &= RegisterHotKey(m_hwnd, id, MOD_ALT, key); \
-    if (enable_prev) success &= RegisterHotKey(m_hwnd, prev_id, MOD_ALT | MOD_SHIFT, key); \
-    if (!success) return false
+    if (key != 0) success &= RegisterHotKey(m_hwnd.get(), id, MOD_ALT, key); \
+    if (enable_prev) success &= RegisterHotKey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
+    if (!success) return false; \
+    else m_registered_hotkey[id] = true
 
     REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config->switchGroupkey(),
             config->enablePrevGroupHotkey(), HotkeyID::HotkeyIDSwitchPrevGroup);
@@ -71,20 +72,20 @@ bool MainWindow::create(HINSTANCE instance)
             config->enablePrevWindowHotkey(), HotkeyID::HotkeyIDSwitchPrevWindow);
     REGISTER_HELPER(HotkeyID::HotkeyIDSwitchMonitor, config->switchMonitorkey(),
             config->enablePrevMonitorHotkey(), HotkeyID::HotkeyIDSwitchPrevMonitor);
-
 #undef REGISTER_HELPER
 
     const Configure::HotkeyPair &hotkey_pair = config->keepShowingHotkey();
     if (hotkey_pair.first != 0 && hotkey_pair.second != 0) {
-        if (!RegisterHotKey(m_hwnd, HotkeyID::HotkeyIDKeepShowingWindow,
+        if (!RegisterHotKey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
                 hotkey_pair.first, hotkey_pair.second))
             return false;
+        m_registered_hotkey[HotkeyID::HotkeyIDKeepShowingWindow] = true;
     }
 
     // add tray icon
     NOTIFYICONDATA nid;
     nid.cbSize = sizeof(nid);
-    nid.hWnd = m_hwnd;
+    nid.hWnd = m_hwnd.get();
     nid.uID = kTrayIconID;
     nid.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
     LoadIconMetric(instance, MAKEINTRESOURCE(IDI_ICON1), LIM_SMALL, &nid.hIcon);
@@ -103,8 +104,11 @@ bool MainWindow::create(HINSTANCE instance)
     return true;
 }
 
-LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT MainWindow::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (hwnd != m_hwnd.get())
+        return -1;
+
     switch (uMsg) {
     case WM_DESTROY:
         m_hwnd = nullptr;
@@ -147,10 +151,10 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         if (LOWORD(wParam) == kTrayIconID && LOWORD(lParam) == WM_RBUTTONDOWN) {
             POINT pos;
             GetCursorPos(&pos);
-            SetForegroundWindow(m_hwnd);
+            SetForegroundWindow(m_hwnd.get());
             TrackPopupMenuEx(m_tray_menu.get(), TPM_LEFTALIGN | TPM_BOTTOMALIGN,
-                    pos.x, pos.y, m_hwnd, nullptr);
-            PostMessage(m_hwnd, WM_NULL, 0, 0);
+                    pos.x, pos.y, m_hwnd.get(), nullptr);
+            PostMessage(m_hwnd.get(), WM_NULL, 0, 0);
             return 0;
         }
         break;
@@ -158,7 +162,7 @@ LRESULT MainWindow::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     default:
         break;
     }
-    return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+    return -1;
 }
 
 void MainWindow::handleSwitchGroup(HotkeyID kid)

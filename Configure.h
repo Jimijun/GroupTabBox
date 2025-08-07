@@ -8,14 +8,16 @@
 class Configure
 {
 public:
-    Configure() = default;
-
     using HotkeyPair = std::pair<UINT, UINT>;
+
+    Configure() = default;
 
     bool ignoreMinimized() const { return m_ignore_minimized; }
 
     const std::string &fontFamily() const { return m_font_family; }
     float fontSize() const { return m_font_size; }
+    float backgroundAlpha() const { return m_background_alpha; }
+    bool enableBackgroundBlur() const { return m_enable_background_blur; }
 
     UINT switchGroupkey() const { return m_switch_group_key; }
     bool enablePrevGroupHotkey() const { return m_enable_prev_group_hotkey; }
@@ -34,6 +36,8 @@ private:
     // ui settings
     std::string m_font_family = "Segoe UI";
     float m_font_size = 8;
+    float m_background_alpha = 0.8f;
+    bool m_enable_background_blur = false;
 
     // hotkeys settings
     UINT m_switch_group_key = VK_F1;
