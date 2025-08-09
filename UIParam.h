@@ -11,7 +11,7 @@ using Gdiplus::REAL;
 class UIParam
 {
 public:
-    UIParam() { update(1.0f); }
+    UIParam();
 
     REAL itemHMargin() const { return m_item_h_margin; }
     REAL itemVMargin() const { return m_item_v_margin; }

@@ -15,7 +15,7 @@ static DWORD getWidnowPid(HWND hwnd)
     return 0;
 }
 
-static BOOL enumChildWindowsProc(HWND hwnd, LPARAM lParam)
+static BOOL CALLBACK enumChildWindowsProc(HWND hwnd, LPARAM lParam)
 {
     std::array<DWORD, 2> *param = reinterpret_cast<decltype(param)>(lParam);
     DWORD pid = getWidnowPid(hwnd);
@@ -71,6 +71,11 @@ void WindowHandle::activate() const
 {
     if (m_minimized)
         ShowWindow(m_hwnd, SW_RESTORE);
+
+    INPUT input;
+    input.type = INPUT_MOUSE;
+    input.mi = { 0 };
+    SendInput(1, &input, sizeof(input));
 
     SetForegroundWindow(m_hwnd);
 }

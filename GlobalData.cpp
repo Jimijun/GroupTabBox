@@ -4,14 +4,14 @@
 
 #pragma comment(lib, "shcore.lib")
 
-BOOL enumWindowsProc(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam)
 {
     if (WindowHandle::validWindow(hwnd))
         globalData()->m_windows.emplace_back(hwnd);
     return TRUE;
 }
 
-BOOL enumMonitorsProc(HMONITOR monitor, HDC hdc, LPRECT lprc, LPARAM lParam)
+BOOL CALLBACK enumMonitorsProc(HMONITOR monitor, HDC hdc, LPRECT lprc, LPARAM lParam)
 {
     globalData()->m_monitors.push_back(monitor);
     return TRUE;

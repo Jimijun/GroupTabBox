@@ -8,8 +8,6 @@
 class MainWindow
 {
 public:
-    ~MainWindow();
-
     HWND hwnd() const { return m_hwnd.get(); }
 
     bool create(HINSTANCE instance);
@@ -17,6 +15,7 @@ public:
     LRESULT handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
+    // events id
     enum HotkeyID
     {
         HotkeyIDSwitchGroup = 0,
@@ -28,6 +27,10 @@ private:
         HotkeyIDKeepShowingWindow,
         HotkeyIDNumber
     };
+    enum MODID
+    {
+        MODIDALT = 0
+    };
 
     void handleSwitchGroup(HotkeyID kid);
     void handleSwitchWindow(HotkeyID kid);
@@ -36,6 +39,7 @@ private:
 
     std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_hwnd =  { nullptr, DestroyWindow };
     std::unique_ptr<HMENU__, decltype(&DestroyMenu)> m_tray_menu = { nullptr, DestroyMenu };
-    std::array<bool, HotkeyID::HotkeyIDNumber> m_registered_hotkey = { false };
+    std::unique_ptr<HINSTANCE__, decltype(&FreeLibrary)> m_keyboard_dll = { nullptr, FreeLibrary };
+    std::unique_ptr<HHOOK__, decltype(&UnhookWindowsHookEx)> m_keyboard_hook = { nullptr, UnhookWindowsHookEx };
 };
 

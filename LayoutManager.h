@@ -1,8 +1,6 @@
 #pragma once
 
 #include "LayoutItem.h"
-#include "UIParam.h"
-#include "WindowHandle.h"
 
 #include <vector>
 

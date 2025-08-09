@@ -16,7 +16,7 @@ const std::unordered_map<std::string, UINT> kKeyMap = {
     { "F1", VK_F1 }, { "F2", VK_F2 }, { "F3", VK_F3 }, { "F4", VK_F4 },
     { "F5", VK_F5 }, { "F6", VK_F6 }, { "F7", VK_F7 }, { "F8", VK_F8 },
     { "F9", VK_F9 }, { "F10", VK_F10 }, { "F11", VK_F11 }, { "F12", VK_F12 },
-    { "`", VK_OEM_3 }
+    { "`", VK_OEM_3 }, { "TAB", VK_TAB }
 };
 
 static void writeIntoMember(const std::string &value_str, bool *mem_ptr)
@@ -197,6 +197,19 @@ bool Configure::load()
                 parseString(setting_pair, it->second);
         }
     }
+
+    // validate values
+    if (m_background_alpha > 1.0f) {
+        m_background_alpha = 1.0f;
+    } else if (m_background_alpha < 0.01f) {
+        m_background_alpha = 0.01f;
+    }
+    if (m_switch_group_key == 0)
+        m_enable_prev_group_hotkey = false;
+    if (m_switch_window_key == 0)
+        m_enable_prev_window_hotkey = false;
+    if (m_switch_monitor_key == 0)
+        m_enable_prev_monitor_hotkey = false;
 
     return true;
 }

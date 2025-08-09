@@ -10,6 +10,8 @@
 #pragma comment(lib, "comctl32.lib")
 
 const UINT WMAPP_TRAYCALLBACK = WM_APP + 1;
+const UINT WMAPP_HOTKEY = WM_APP + 2;
+const UINT WMAPP_MODUP = WM_APP + 3;
 
 const UINT kTrayIconID = 114;
 const UINT kTrayMenuExitID = 514;
@@ -29,18 +31,6 @@ static HMONITOR monitorFromCursor()
     return MonitorFromPoint(pos, MONITOR_DEFAULTTONEAREST);
 }
 
-MainWindow::~MainWindow()
-{
-    if (m_hwnd) {
-        for (int id = 0; id < HotkeyID::HotkeyIDNumber; ++id) {
-            if (m_registered_hotkey[id]) {
-                UnregisterHotKey(m_hwnd.get(), id);
-                m_registered_hotkey[id] = false;
-            }
-        }
-    }
-}
-
 bool MainWindow::create(HINSTANCE instance)
 {
     if (m_hwnd)
@@ -57,14 +47,25 @@ bool MainWindow::create(HINSTANCE instance)
     if (!m_hwnd)
         return false;
 
+    m_keyboard_dll = { LoadLibrary(L"KeyboardListener.dll"), FreeLibrary };
+    if (!m_keyboard_dll)
+        return false;
+    bool (*addHotkey)(HWND hwnd, int id, UINT modifiers, UINT key) =
+            reinterpret_cast<decltype(addHotkey)>(GetProcAddress(m_keyboard_dll.get(), "addHotkey"));
+    bool (*addModUpNotify)(HWND hwnd, int id, UINT modifiers) =
+            reinterpret_cast<decltype(addModUpNotify)>(GetProcAddress(m_keyboard_dll.get(), "addModUpNotify"));
+    HOOKPROC hook_proc = reinterpret_cast<HOOKPROC>(GetProcAddress(m_keyboard_dll.get(), "keyboardHookProc"));
+    if (!addHotkey || !addModUpNotify || !hook_proc)
+        return false;
+
     const Configure *config = globalData()->config();
     bool success = true;
 
+    // add hotkeys
 #define REGISTER_HELPER(id, key, enable_prev, prev_id) \
-    if (key != 0) success &= RegisterHotKey(m_hwnd.get(), id, MOD_ALT, key); \
-    if (enable_prev) success &= RegisterHotKey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
-    if (!success) return false; \
-    else m_registered_hotkey[id] = true
+    if (key != 0) success &= addHotkey(m_hwnd.get(), id, MOD_ALT, key); \
+    if (enable_prev) success &= addHotkey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
+    if (!success) return false
 
     REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config->switchGroupkey(),
             config->enablePrevGroupHotkey(), HotkeyID::HotkeyIDSwitchPrevGroup);
@@ -76,11 +77,22 @@ bool MainWindow::create(HINSTANCE instance)
 
     const Configure::HotkeyPair &hotkey_pair = config->keepShowingHotkey();
     if (hotkey_pair.first != 0 && hotkey_pair.second != 0) {
-        if (!RegisterHotKey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
+        if (!addHotkey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
                 hotkey_pair.first, hotkey_pair.second))
             return false;
-        m_registered_hotkey[HotkeyID::HotkeyIDKeepShowingWindow] = true;
     }
+
+    // add mod up notify
+    if (!addModUpNotify(m_hwnd.get(), MODID::MODIDALT, MOD_ALT))
+        return false;
+
+    // install keyboard hook
+    m_keyboard_hook = {
+        SetWindowsHookEx(WH_KEYBOARD_LL, hook_proc, m_keyboard_dll.get(), 0),
+        UnhookWindowsHookEx
+    };
+    if (!m_keyboard_hook)
+        return false;
 
     // add tray icon
     NOTIFYICONDATA nid;
@@ -115,7 +127,28 @@ LRESULT MainWindow::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         PostQuitMessage(0);
         return 0;
 
-    case WM_HOTKEY:
+    case WM_COMMAND:
+        // exit
+        if (LOWORD(wParam) == kTrayMenuExitID) {
+            PostQuitMessage(0);
+            return 0;
+        }
+        break;
+
+    case WMAPP_TRAYCALLBACK:
+        // show tray menu
+        if (LOWORD(wParam) == kTrayIconID && LOWORD(lParam) == WM_RBUTTONDOWN) {
+            POINT pos;
+            GetCursorPos(&pos);
+            SetForegroundWindow(m_hwnd.get());
+            TrackPopupMenuEx(m_tray_menu.get(), TPM_LEFTALIGN | TPM_BOTTOMALIGN,
+                    pos.x, pos.y, m_hwnd.get(), nullptr);
+            PostMessage(m_hwnd.get(), WM_NULL, 0, 0);
+            return 0;
+        }
+        break;
+
+    case WMAPP_HOTKEY:
         switch (static_cast<HotkeyID>(wParam)) {
         case HotkeyID::HotkeyIDSwitchGroup:
         case HotkeyID::HotkeyIDSwitchPrevGroup:
@@ -138,26 +171,23 @@ LRESULT MainWindow::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         }
         return 0;
 
-    case WM_COMMAND:
-        // exit
-        if (LOWORD(wParam) == kTrayMenuExitID) {
-            PostQuitMessage(0);
-            return 0;
-        }
-        break;
+    case WMAPP_MODUP:
+        switch (static_cast<HotkeyID>(wParam)) {
+        case MODID::MODIDALT:
+            {
+                GroupThumbnailWindow *group = globalData()->groupWindow();
+                ListThumbnailWindow *list = globalData()->listWindow();
+                if (group && group->visible())
+                    group->handleMessage(group->hwnd(), WM_KEYUP, VK_MENU, 0);
+                if (list && list->visible())
+                    list->handleMessage(list->hwnd(), WM_KEYUP, VK_MENU, 0);
+            }
+            break;
 
-    case WMAPP_TRAYCALLBACK:
-        // show tray menu
-        if (LOWORD(wParam) == kTrayIconID && LOWORD(lParam) == WM_RBUTTONDOWN) {
-            POINT pos;
-            GetCursorPos(&pos);
-            SetForegroundWindow(m_hwnd.get());
-            TrackPopupMenuEx(m_tray_menu.get(), TPM_LEFTALIGN | TPM_BOTTOMALIGN,
-                    pos.x, pos.y, m_hwnd.get(), nullptr);
-            PostMessage(m_hwnd.get(), WM_NULL, 0, 0);
-            return 0;
+        default:
+            break;
         }
-        break;
+        return 0;
 
     default:
         break;

@@ -1,7 +1,6 @@
 #include "ThumbnailWindow.h"
 #include "GlobalData.h"
 
-#include <gdiplus.h>
 #include <windowsx.h>
 
 static void enableBlur(HWND hwnd)
@@ -44,7 +43,12 @@ LRESULT ThumbnailWindowBase::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, 
 
     switch (uMsg) {
     case WM_DESTROY:
-        m_hwnd = nullptr;
+        if (m_hwnd.get() == hwnd) {
+            m_hwnd.reset();
+        } else if (m_fore_hwnd.get() == hwnd) {
+            m_fore_hwnd.reset();
+        }
+        m_visible = false;
         return 0;
 
     case WM_ERASEBKGND:
@@ -90,7 +94,7 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
     if (m_hwnd && m_fore_hwnd)
         return true;
 
-    m_hwnd =  {
+    m_hwnd = {
         CreateWindowEx(
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED,
             L"GroupTabBox", L"ThumbnailWindow",
@@ -125,8 +129,6 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
         } else {
             // set background alpha
             float alpha = config->backgroundAlpha();
-            alpha = min(alpha, 1.0f);
-            alpha = max(alpha, 0.0f);
             SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
         }
     }
@@ -136,7 +138,10 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
 
 void ThumbnailWindowBase::show(bool keep)
 {
-    if (!m_hwnd || visible())
+    if (visible())
+        return;
+
+    if ((!m_hwnd || !m_fore_hwnd) && !create(globalData()->hInstance()))
         return;
 
     m_keep_showing = keep;
@@ -162,7 +167,7 @@ void ThumbnailWindowBase::show(bool keep)
 
 void ThumbnailWindowBase::hide()
 {
-    if (!m_hwnd || !visible())
+    if (!m_hwnd || !m_fore_hwnd || !visible())
         return;
 
     updateView({});
