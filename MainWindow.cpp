@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "Configure.h"
 #include "GlobalData.h"
 #include "resource.h"
 #include "ThumbnailWindow.h"
@@ -44,8 +45,9 @@ bool MainWindow::create(HINSTANCE instance)
         ),
         DestroyWindow
     };
-    if (!m_hwnd)
+    if (!m_hwnd) {
         return false;
+    }
 
     m_keyboard_dll = { LoadLibrary(L"KeyboardListener.dll"), FreeLibrary };
     if (!m_keyboard_dll)

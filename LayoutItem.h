@@ -1,6 +1,7 @@
 #pragma once
 
-#include "WindowHandle.h"
+#include <Windows.h>
+#include <gdiplus.h>
 
 #include <memory>
 
@@ -8,7 +9,10 @@ using Gdiplus::Bitmap;
 using Gdiplus::Graphics;
 using Gdiplus::PointF;
 using Gdiplus::REAL;
+using Gdiplus::RectF;
 using Gdiplus::SizeF;
+
+class WindowHandle;
 
 class LayoutItem
 {

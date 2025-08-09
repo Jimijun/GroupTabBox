@@ -1,4 +1,5 @@
 #include "WindowHandle.h"
+#include "Configure.h"
 #include "GlobalData.h"
 
 #include <psapi.h>

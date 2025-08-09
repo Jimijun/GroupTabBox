@@ -2,14 +2,9 @@
 
 #include "LayoutManager.h"
 
-#include <gdiplus.h>
-#include <Windows.h>
-
 #include <memory>
 #include <string>
 
-using Gdiplus::Graphics;
-using Gdiplus::RectF;
 using Gdiplus::Region;
 
 class ThumbnailWindowBase

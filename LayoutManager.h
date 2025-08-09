@@ -4,15 +4,12 @@
 
 #include <vector>
 
-using Gdiplus::REAL;
-using Gdiplus::RectF;
-using Gdiplus::PointF;
-
 class LayoutManager
 {
 public:
     LayoutManager(HMONITOR monitor, REAL width_limit)
         : m_monitor(monitor), m_width_limit(width_limit) {}
+    virtual ~LayoutManager() = default;
 
     const RectF &rect() const { return m_rect; }
 

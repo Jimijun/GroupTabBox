@@ -1,6 +1,7 @@
 #include "LayoutItem.h"
 #include "GlobalData.h"
 #include "UIParam.h"
+#include "WindowHandle.h"
 
 SizeF LayoutItem::scaledSize(REAL width, REAL height, REAL width_limit, REAL height_limit,
         REAL bar_height)

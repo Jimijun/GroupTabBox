@@ -1,5 +1,6 @@
 #include "LayoutManager.h"
 #include "GlobalData.h"
+#include "UIParam.h"
 
 void LayoutManager::reinitialize(HMONITOR monitor, REAL width_limit)
 {

@@ -2,7 +2,6 @@
 
 #include <Windows.h>
 
-#include <array>
 #include <memory>
 
 class MainWindow

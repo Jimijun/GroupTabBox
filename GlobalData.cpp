@@ -1,4 +1,8 @@
 #include "GlobalData.h"
+#include "Configure.h"
+#include "MainWindow.h"
+#include "ThumbnailWindow.h"
+#include "UIParam.h"
 
 #include <ShellScalingApi.h>
 

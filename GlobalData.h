@@ -1,16 +1,14 @@
 #pragma once
 
-#include "Configure.h"
-#include "MainWindow.h"
-#include "ThumbnailWindow.h"
-#include "UIParam.h"
 #include "WindowHandle.h"
 
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 using Gdiplus::REAL;
+
+class Configure;
+class GroupThumbnailWindow;
+class ListThumbnailWindow;
+class MainWindow;
+class UIParam;
 
 class GlobalData
 {

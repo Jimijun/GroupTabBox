@@ -1,8 +1,8 @@
 #pragma once
 
 #include <dwmapi.h>
-#include <gdiplus.h>
 #include <Windows.h>
+#include <gdiplus.h>
 
 #include <memory>
 #include <unordered_map>

@@ -1,5 +1,9 @@
 #include "ThumbnailWindow.h"
+#include "Configure.h"
 #include "GlobalData.h"
+#include "LayoutManager.h"
+#include "LayoutItem.h"
+#include "UIParam.h"
 
 #include <windowsx.h>
 
