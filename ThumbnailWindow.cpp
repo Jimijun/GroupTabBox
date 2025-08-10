@@ -9,34 +9,6 @@
 
 #include <windowsx.h>
 
-static void enableBlur(HWND hwnd)
-{
-    HMODULE handle = GetModuleHandle(L"user32.dll");
-    if(handle) {
-        enum WINDOWCOMPOSITIONATTRIB { WCA_ACCENT_POLICY = 19 };
-        struct WINDOWCOMPOSITIONATTRIBDATA
-        {
-            WINDOWCOMPOSITIONATTRIB Attrib;
-            PVOID pvData;
-            SIZE_T cbData;
-        };
-        enum ACCENT_STATE { ACCENT_ENABLE_BLURBEHIND = 3 };
-        struct ACCENT_POLICY
-        {
-            ACCENT_STATE AccentState;
-            DWORD AccentFlags, GradientColor, AnimationId;
-        };
-
-        BOOL (*func)(HWND hwnd, WINDOWCOMPOSITIONATTRIBDATA *data) =
-                reinterpret_cast<decltype(func)>(GetProcAddress(handle, "SetWindowCompositionAttribute"));
-        if(func) {
-            ACCENT_POLICY accent = { ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
-            WINDOWCOMPOSITIONATTRIBDATA data = { WCA_ACCENT_POLICY, &accent, sizeof(accent) };
-            func(hwnd, &data);
-        }
-    }
-}
-
 ThumbnailWindowBase::~ThumbnailWindowBase()
 {
     hide();
@@ -114,7 +86,7 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
             L"GroupTabBox", L"ForegroundWindow",
             WS_POPUPWINDOW,
             0, 0, 1, 1,
-            m_hwnd.get(), nullptr, instance, nullptr
+            nullptr, nullptr, instance, nullptr
         ),
         DestroyWindow
     };
@@ -126,16 +98,9 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
     SetLayeredWindowAttributes(m_fore_hwnd.get(), RGB(0, 255, 0), 0, LWA_COLORKEY);
 
     const Configure *config = globalData()->config();
-    if (config->enableBackgroundBlur()) {
-        // remove WS_EX_LAYERED before blur
-        SetWindowLong(m_hwnd.get(), GWL_EXSTYLE,
-                GetWindowLong(m_hwnd.get(), GWL_EXSTYLE) & ~WS_EX_LAYERED);
-        enableBlur(m_hwnd.get());
-    } else {
-        // set background alpha
-        float alpha = config->backgroundAlpha();
-        SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
-    }
+    // set background alpha
+    float alpha = config->backgroundAlpha();
+    SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
 
     return true;
 }
@@ -165,9 +130,6 @@ void ThumbnailWindowBase::show(bool keep)
     SetWindowPos(m_fore_hwnd.get(), nullptr, m_rect.X - 1, m_rect.Y - 1,
             m_rect.Width + 2, m_rect.Height + 2, SWP_SHOWWINDOW);
 
-    // show and focus
-    ShowWindow(m_hwnd.get(), SW_SHOW);
-    ShowWindow(m_fore_hwnd.get(), SW_SHOW);
     m_visible = true;
 }
 
@@ -175,6 +137,11 @@ void ThumbnailWindowBase::hide()
 {
     if (!m_hwnd || !m_fore_hwnd || !visible())
         return;
+
+    SelectObject(m_dc.get(), m_bitmap.get());
+    Graphics graphics(m_dc.get());
+    graphics.Clear(0xFF00FF00);
+    requestRepaint(true);
 
     updateView({});
     ShowWindow(m_hwnd.get(), SW_HIDE);

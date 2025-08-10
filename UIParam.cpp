@@ -3,8 +3,6 @@
 #include "GlobalData.h"
 
 UIParam::UIParam()
-    : m_kBackgroundColor(globalData()->config()->enableBackgroundBlur() ?
-            0xFF000000 : 0xFF808080)  // darker color if enable blur
 {
     update(1.0f);
 }

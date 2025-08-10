@@ -151,7 +151,6 @@ bool Configure::load()
             { "sFontFamily", &m_font_family },
             { "fFontSize", &m_font_size },
             { "fBackgroundAlpha", &m_background_alpha },
-            { "bEnableBackgroundBlur", &m_enable_background_blur },
         },
         ConfigMap{  // Hotkeys
             { "kSwitchGroupkey", &m_switch_group_key },
