@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "Configure.h"
 #include "GlobalData.h"
+#include "KeyboardHook.h"
 #include "resource.h"
 #include "ThumbnailWindow.h"
 
@@ -9,13 +10,6 @@
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' \
         version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib, "comctl32.lib")
-
-const UINT WMAPP_TRAYCALLBACK = WM_APP + 1;
-const UINT WMAPP_HOTKEY = WM_APP + 2;
-const UINT WMAPP_MODUP = WM_APP + 3;
-
-const UINT kTrayIconID = 114;
-const UINT kTrayMenuExitID = 514;
 
 static HMONITOR monitorFromActiveWindow()
 {
@@ -49,24 +43,14 @@ bool MainWindow::create(HINSTANCE instance)
         return false;
     }
 
-    m_keyboard_dll = { LoadLibrary(L"KeyboardListener.dll"), FreeLibrary };
-    if (!m_keyboard_dll)
-        return false;
-    bool (*addHotkey)(HWND hwnd, int id, UINT modifiers, UINT key) =
-            reinterpret_cast<decltype(addHotkey)>(GetProcAddress(m_keyboard_dll.get(), "addHotkey"));
-    bool (*addModUpNotify)(HWND hwnd, int id, UINT modifiers) =
-            reinterpret_cast<decltype(addModUpNotify)>(GetProcAddress(m_keyboard_dll.get(), "addModUpNotify"));
-    HOOKPROC hook_proc = reinterpret_cast<HOOKPROC>(GetProcAddress(m_keyboard_dll.get(), "keyboardHookProc"));
-    if (!addHotkey || !addModUpNotify || !hook_proc)
-        return false;
-
     const Configure *config = globalData()->config();
+    KeyboardHook *hook = globalData()->keyboardHook();
     bool success = true;
 
     // add hotkeys
 #define REGISTER_HELPER(id, key, enable_prev, prev_id) \
-    if (key != 0) success &= addHotkey(m_hwnd.get(), id, MOD_ALT, key); \
-    if (enable_prev) success &= addHotkey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
+    if (key != 0) success &= hook->addHotkey(m_hwnd.get(), id, MOD_ALT, key); \
+    if (enable_prev) success &= hook->addHotkey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
     if (!success) return false
 
     REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config->switchGroupkey(),
@@ -79,22 +63,10 @@ bool MainWindow::create(HINSTANCE instance)
 
     const Configure::HotkeyPair &hotkey_pair = config->keepShowingHotkey();
     if (hotkey_pair.first != 0 && hotkey_pair.second != 0) {
-        if (!addHotkey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
+        if (!hook->addHotkey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
                 hotkey_pair.first, hotkey_pair.second))
             return false;
     }
-
-    // add mod up notify
-    if (!addModUpNotify(m_hwnd.get(), MODID::MODIDALT, MOD_ALT))
-        return false;
-
-    // install keyboard hook
-    m_keyboard_hook = {
-        SetWindowsHookEx(WH_KEYBOARD_LL, hook_proc, m_keyboard_dll.get(), 0),
-        UnhookWindowsHookEx
-    };
-    if (!m_keyboard_hook)
-        return false;
 
     // add tray icon
     NOTIFYICONDATA nid;
@@ -169,24 +141,6 @@ LRESULT MainWindow::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
         case HotkeyID::HotkeyIDKeepShowingWindow:
             handleShowWindow(static_cast<HotkeyID>(wParam));
-            break;
-        }
-        return 0;
-
-    case WMAPP_MODUP:
-        switch (static_cast<HotkeyID>(wParam)) {
-        case MODID::MODIDALT:
-            {
-                GroupThumbnailWindow *group = globalData()->groupWindow();
-                ListThumbnailWindow *list = globalData()->listWindow();
-                if (group && group->visible())
-                    group->handleMessage(group->hwnd(), WM_KEYUP, VK_MENU, 0);
-                if (list && list->visible())
-                    list->handleMessage(list->hwnd(), WM_KEYUP, VK_MENU, 0);
-            }
-            break;
-
-        default:
             break;
         }
         return 0;

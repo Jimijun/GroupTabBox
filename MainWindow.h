@@ -26,10 +26,6 @@ private:
         HotkeyIDKeepShowingWindow,
         HotkeyIDNumber
     };
-    enum MODID
-    {
-        MODIDALT = 0
-    };
 
     void handleSwitchGroup(HotkeyID kid);
     void handleSwitchWindow(HotkeyID kid);
@@ -38,7 +34,5 @@ private:
 
     std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_hwnd =  { nullptr, DestroyWindow };
     std::unique_ptr<HMENU__, decltype(&DestroyMenu)> m_tray_menu = { nullptr, DestroyMenu };
-    std::unique_ptr<HINSTANCE__, decltype(&FreeLibrary)> m_keyboard_dll = { nullptr, FreeLibrary };
-    std::unique_ptr<HHOOK__, decltype(&UnhookWindowsHookEx)> m_keyboard_hook = { nullptr, UnhookWindowsHookEx };
 };
 

@@ -1,8 +1,10 @@
 #include "ThumbnailWindow.h"
 #include "Configure.h"
 #include "GlobalData.h"
+#include "KeyboardHook.h"
 #include "LayoutManager.h"
 #include "LayoutItem.h"
+#include "resource.h"
 #include "UIParam.h"
 
 #include <windowsx.h>
@@ -27,7 +29,7 @@ static void enableBlur(HWND hwnd)
 
         BOOL (*func)(HWND hwnd, WINDOWCOMPOSITIONATTRIBDATA *data) =
                 reinterpret_cast<decltype(func)>(GetProcAddress(handle, "SetWindowCompositionAttribute"));
-        if(func){
+        if(func) {
             ACCENT_POLICY accent = { ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
             WINDOWCOMPOSITIONATTRIBDATA data = { WCA_ACCENT_POLICY, &accent, sizeof(accent) };
             func(hwnd, &data);
@@ -81,10 +83,8 @@ LRESULT ThumbnailWindowBase::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, 
                 GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         return 0;
 
-    case WM_KEYUP:
-    case WM_SYSKEYUP:
-        if (!m_keep_showing)
-            handleKeyUp(wParam);
+    case WMAPP_MODUP:
+        handleModUp(wParam);
         return 0;
 
     default:
@@ -119,25 +119,25 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
         DestroyWindow
     };
 
-    if (m_hwnd && m_fore_hwnd) {
-        const Configure *config = globalData()->config();
+    if (!m_hwnd || !m_fore_hwnd)
+        return false;
 
-        // foreground window's background should be fully transparent
-        SetLayeredWindowAttributes(m_fore_hwnd.get(), RGB(0, 255, 0), 0, LWA_COLORKEY);
+    // foreground window's background should be fully transparent
+    SetLayeredWindowAttributes(m_fore_hwnd.get(), RGB(0, 255, 0), 0, LWA_COLORKEY);
 
-        if (config->enableBackgroundBlur()) {
-            // remove WS_EX_LAYERED before blur
-            SetWindowLong(m_hwnd.get(), GWL_EXSTYLE,
-                    GetWindowLong(m_hwnd.get(), GWL_EXSTYLE) & ~WS_EX_LAYERED);
-            enableBlur(m_hwnd.get());
-        } else {
-            // set background alpha
-            float alpha = config->backgroundAlpha();
-            SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
-        }
+    const Configure *config = globalData()->config();
+    if (config->enableBackgroundBlur()) {
+        // remove WS_EX_LAYERED before blur
+        SetWindowLong(m_hwnd.get(), GWL_EXSTYLE,
+                GetWindowLong(m_hwnd.get(), GWL_EXSTYLE) & ~WS_EX_LAYERED);
+        enableBlur(m_hwnd.get());
+    } else {
+        // set background alpha
+        float alpha = config->backgroundAlpha();
+        SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
     }
 
-    return m_hwnd && m_fore_hwnd;
+    return true;
 }
 
 void ThumbnailWindowBase::show(bool keep)
@@ -146,6 +146,9 @@ void ThumbnailWindowBase::show(bool keep)
         return;
 
     if ((!m_hwnd || !m_fore_hwnd) && !create(globalData()->hInstance()))
+        return;
+
+    if (!keep && !globalData()->keyboardHook()->modUpNotifyOnce(m_hwnd.get(), MOD_ALT))
         return;
 
     m_keep_showing = keep;
@@ -165,7 +168,6 @@ void ThumbnailWindowBase::show(bool keep)
     // show and focus
     ShowWindow(m_hwnd.get(), SW_SHOW);
     ShowWindow(m_fore_hwnd.get(), SW_SHOW);
-    SetForegroundWindow(m_hwnd.get());
     m_visible = true;
 }
 
@@ -329,9 +331,7 @@ void ThumbnailWindowBase::setSelected(const LayoutItem *item)
 void ThumbnailWindowBase::beforeDrawContent(Graphics *graphics)
 {
     // fill dirty region with green
-    const Gdiplus::Color bitmap_back_color(0xFF00FF00);
-    const Gdiplus::Color back_color(bitmap_back_color);
-    Gdiplus::SolidBrush back_brush(back_color);
+    Gdiplus::SolidBrush back_brush(0xFF00FF00);
     graphics->FillRegion(&back_brush, &m_dirty_region);
 }
 
@@ -411,9 +411,9 @@ void ThumbnailWindowBase::handleMouseWheel(short delta, int x, int y)
     requestRepaint();
 }
 
-void ThumbnailWindowBase::handleKeyUp(WPARAM key)
+void ThumbnailWindowBase::handleModUp(WPARAM mod)
 {
-    if (key == VK_MENU && m_selected)
+    if (!m_keep_showing && mod == MOD_ALT)
         activateSelected();
 }
 
@@ -472,7 +472,6 @@ void GroupThumbnailWindow::initializeLayout()
         }
     }
     m_selected = m_layout_manager->itemAt(0);
-    updateListWindow();
     m_layout_manager->alignItems();
 
     // calculate window rect
@@ -519,7 +518,7 @@ void GroupThumbnailWindow::beforeDrawContent(Graphics *graphics)
             graphics->FillRectangle(&brush, rect);
             rect.Width -= 7 * scale;
             rect.Height -= 7 * scale;
-            brush.SetColor(Gdiplus::Color(0xFF00FF00));
+            brush.SetColor(0xFF00FF00);
             graphics->FillRectangle(&brush, rect);
         }
     }
@@ -596,9 +595,9 @@ void ListThumbnailWindow::setGroup(const std::wstring &group_name)
         return;
 
     m_group_name = group_name;
-    initializeLayout();
-    m_bitmap.reset();
     if (visible()) {
+        initializeLayout();
+        initializeBitmap();
         updateBitmap(true);
         requestRepaint();
     }

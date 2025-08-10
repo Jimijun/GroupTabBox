@@ -44,7 +44,7 @@ protected:
     virtual void handlePaint(HWND hwnd, HDC hdc);
     virtual void handleLButtonUp(int x, int y);
     virtual void handleMouseWheel(short delta, int x, int y);
-    virtual void handleKeyUp(WPARAM key);
+    virtual void handleModUp(WPARAM mod);
 
     std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_hwnd = { nullptr, DestroyWindow };
     std::unique_ptr<HWND__, decltype(&DestroyWindow)> m_fore_hwnd =  { nullptr, DestroyWindow };

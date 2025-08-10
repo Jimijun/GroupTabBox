@@ -6,6 +6,7 @@ using Gdiplus::REAL;
 
 class Configure;
 class GroupThumbnailWindow;
+class KeyboardHook;
 class ListThumbnailWindow;
 class MainWindow;
 class UIParam;
@@ -34,6 +35,7 @@ public:
     MainWindow *mainWindow() const { return m_main_window.get(); }
     GroupThumbnailWindow *groupWindow() const { return m_group_window.get(); }
     ListThumbnailWindow *listWindow() const { return m_list_window.get(); }
+    KeyboardHook *keyboardHook() const { return m_keyboard_hook.get(); }
 
     void setCurrentMonitor(HMONITOR monitor);
 
@@ -65,6 +67,8 @@ private:
     std::unique_ptr<MainWindow> m_main_window = nullptr;
     std::unique_ptr<GroupThumbnailWindow> m_group_window = nullptr;
     std::unique_ptr<ListThumbnailWindow> m_list_window = nullptr;
+
+    std::unique_ptr<KeyboardHook> m_keyboard_hook = nullptr;
 };
 
 GlobalData *globalData();

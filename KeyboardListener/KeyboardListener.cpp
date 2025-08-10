@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "resource.h"
 
 #include <array>
 #include <unordered_set>
@@ -27,13 +28,10 @@ struct std::hash<std::pair<U, V>>
     }
 };
 
-const UINT WMAPP_HOTKEY = WM_APP + 2;
-const UINT WMAPP_MODUP = WM_APP + 3;
-
 // shared memory
 #pragma data_seg(".shared")
 std::unordered_map<HotkeyPair, NotifyPair> gHotkeys = {};
-std::array<std::unordered_set<NotifyPair>, 5> gModUpNotify = {};
+std::array<std::unordered_set<HWND>, 5> gModUpNotify = {};
 #pragma data_seg()
 #pragma comment(linker, "/section:.shared,RWS")
 
@@ -46,16 +44,13 @@ static inline char toModifierBit(UINT key)
 {
     if (key < VK_LSHIFT || key > VK_RMENU)
         return 0;
-    return 1 << ((key - VK_LSHIFT) >> 1);
+    return 1 << (2 - ((key - VK_LSHIFT) >> 1));
 }
 
 DLLEXPORT bool addHotkey(HWND hwnd, int id, UINT modifiers, UINT key)
 {
-    // ALT | CTRL | SHIFT (lower 3 bits)
-    char mod = static_cast<char>((modifiers & MOD_ALT) > 0) << 2
-            | static_cast<char>((modifiers & MOD_CONTROL) > 0) << 1
-            | static_cast<char>((modifiers & MOD_SHIFT) > 0);
-    HotkeyPair hotkey(mod, key);
+    // SHIFT | CTRL | ALT (lower 3 bits)
+    HotkeyPair hotkey(modifiers, key);
     auto it = gHotkeys.find(hotkey);
     if (it != gHotkeys.end())
         return false;
@@ -63,28 +58,12 @@ DLLEXPORT bool addHotkey(HWND hwnd, int id, UINT modifiers, UINT key)
     return true;
 }
 
-DLLEXPORT bool addModUpNotify(HWND hwnd, int id, UINT modifiers)
+DLLEXPORT bool modUpNotifyOnce(HWND hwnd, UINT modifiers)
 {
-    char index = 0;
     // only support single modifier
-    // convert modifiers into index (ALT | CTRL | SHIFT)
-    switch (modifiers) {
-    case MOD_ALT:
-        index = 4;
-        break;
-
-    case MOD_CONTROL:
-        index = 2;
-        break;
-
-    case MOD_SHIFT:
-        index = 1;
-        break;
-
-    default:
+    if (modifiers != MOD_ALT && modifiers != MOD_CONTROL && modifiers != MOD_SHIFT)
         return false;
-    }
-    gModUpNotify[index].emplace(NotifyPair(hwnd, id));
+    gModUpNotify[modifiers].emplace(hwnd);
     return true;
 }
 
@@ -99,12 +78,15 @@ DLLEXPORT LRESULT CALLBACK keyboardHookProc(int code, WPARAM wParam, LPARAM lPar
     char mod = toModifierBit(key_info->vkCode);
 
     if (key_info->flags & LLKHF_UP) {
-        // key up
-        mod_state &= ~mod;
+        // modifier key up
         if (mod != 0) {
-            // modifier mod up
-            for (const auto &pair : gModUpNotify[mod])
-                SendMessage(pair.first, WMAPP_MODUP, pair.second, 0);
+            mod_state &= ~mod;
+            // notify mod up
+            if (!gModUpNotify[mod].empty()) {
+                for (const auto &hwnd : gModUpNotify[mod])
+                    SendMessage(hwnd, WMAPP_MODUP, mod, 0);
+                gModUpNotify[mod].clear();
+            }
         }
     } else {
         if (mod != 0) {

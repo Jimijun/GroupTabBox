@@ -1,7 +1,3 @@
-//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ 生成的包含文件。
-// 供 GroupTabBox.rc 使用
-//
 #define IDI_ICON1                       105
 
 // Next default values for new objects
@@ -14,3 +10,10 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+
+const UINT WMAPP_TRAYCALLBACK = WM_APP + 1;
+const UINT WMAPP_HOTKEY = WM_APP + 2;
+const UINT WMAPP_MODUP = WM_APP + 3;
+
+const UINT kTrayIconID = 114;
+const UINT kTrayMenuExitID = 514;

@@ -1,5 +1,6 @@
 #include "GlobalData.h"
 #include "Configure.h"
+#include "KeyboardHook.h"
 #include "MainWindow.h"
 #include "ThumbnailWindow.h"
 #include "UIParam.h"
@@ -94,6 +95,12 @@ bool GlobalData::initialize(HINSTANCE instance)
             return false;
     }
     m_config->load();
+
+    if (!m_keyboard_hook) {
+        m_keyboard_hook = std::make_unique<KeyboardHook>();
+        if (!m_keyboard_hook || !m_keyboard_hook->initialize(instance))
+            return false;
+    }
 
     if (!m_ui) {
         m_ui = std::make_unique<UIParam>();
