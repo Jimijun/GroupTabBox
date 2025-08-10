@@ -86,7 +86,7 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
             L"GroupTabBox", L"ForegroundWindow",
             WS_POPUPWINDOW,
             0, 0, 1, 1,
-            nullptr, nullptr, instance, nullptr
+            m_hwnd.get(), nullptr, instance, nullptr
         ),
         DestroyWindow
     };
