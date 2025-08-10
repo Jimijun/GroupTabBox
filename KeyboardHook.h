@@ -7,6 +7,8 @@
 class KeyboardHook
 {
 public:
+    ~KeyboardHook();
+
     bool initialize(HINSTANCE instance);
 
     bool addHotkey(HWND hwnd, int id, UINT modifiers, UINT key);

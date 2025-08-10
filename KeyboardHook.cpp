@@ -2,6 +2,12 @@
 
 const wchar_t *kKeyboardDllFile = L"KeyboardListener.dll";
 
+KeyboardHook::~KeyboardHook()
+{
+    m_hook.reset();
+    m_dll.reset();
+}
+
 bool KeyboardHook::initialize(HINSTANCE instance)
 {
     m_dll = { LoadLibrary(kKeyboardDllFile), FreeLibrary };
