@@ -192,7 +192,7 @@ void MainWindow::handleSwitchWindow(HotkeyID kid)
                 return handle.hwnd() == active_window;
             }
         );
-        list->setGroup(it->exePath());
+        list->setGroup(it->group());
 
         list->show(false);
     }

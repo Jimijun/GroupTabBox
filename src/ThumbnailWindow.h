@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LayoutManager.h"
+#include "WindowHandle.h"
 
 #include <memory>
 #include <string>
@@ -79,17 +80,16 @@ private:
     void handleRButtonUp(int x, int y);
 
     void updateListWindow();
-    bool multipleWindowsInGroup(const std::wstring &group) const;
 };
 
 class ListThumbnailWindow : public ThumbnailWindowBase
 {
 public:
-    void setGroup(const std::wstring &group_name);
+    void setGroup(const WindowGroup &group);
 
 private:
     void initializeLayout() override;
     void handleLButtonUp(int x, int y) override;
 
-    std::wstring m_group_name;
+    WindowGroup m_group;
 };

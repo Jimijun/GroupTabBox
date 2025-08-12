@@ -33,9 +33,9 @@ GlobalData *GlobalData::instance()
     return &instance;
 }
 
-const std::vector<WindowHandle *> &GlobalData::windowsFromGroup(const std::wstring &group_name) const
+const std::vector<WindowHandle *> &GlobalData::windowsFromGroup(const WindowGroup &group) const
 {
-    auto it = m_group_index.find(group_name);
+    auto it = m_group_index.find(group);
     if (it == m_group_index.end())
         return m_window_groups.back();  // return the empty group
     return m_window_groups[it->second];
@@ -159,13 +159,12 @@ bool GlobalData::update(HMONITOR monitor)
     m_group_index.clear();
     m_window_groups.clear();
     for (auto &window : m_windows) {
-        // group by exe path
-        const std::wstring &path = window.exePath();
-        auto it = m_group_index.find(path);
+        const WindowGroup &group = window.group();
+        auto it = m_group_index.find(group);
         if (it != m_group_index.end()) {
             m_window_groups[it->second].push_back(&window);
         } else {
-            m_group_index.insert({ path, m_group_index.size() });
+            m_group_index.insert({ group, m_group_index.size() });
             m_window_groups.push_back({ &window });
         }
     }

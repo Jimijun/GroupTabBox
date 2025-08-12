@@ -168,9 +168,6 @@ void WindowHandle::hideThumbnail(HWND dst_hwnd) const
 
 bool WindowHandle::validWindow(HWND hwnd)
 {
-    if (GetWindow(hwnd, GW_OWNER))
-        return false;
-
     WINDOWINFO info = {};
     if (!GetWindowInfo(hwnd, &info)
             || (info.dwStyle & WS_ICONIC) && globalData()->config()->ignoreMinimized()

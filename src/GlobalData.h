@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/PairHash.h"
 #include "WindowHandle.h"
 
 using Gdiplus::REAL;
@@ -29,7 +30,7 @@ public:
     const UIParam *UI() const { return m_ui.get(); }
     const std::vector<WindowHandle> &windows() const { return m_windows; }
     const std::vector<std::vector<WindowHandle *>> &windowGroups() const { return m_window_groups; }
-    const std::vector<WindowHandle *> &windowsFromGroup(const std::wstring &group_name) const;
+    const std::vector<WindowHandle *> &windowsFromGroup(const WindowGroup &group) const;
     RectF groupWindowLimitRect() const;
     RectF listWindowLimitRect() const;
     MainWindow *mainWindow() const { return m_main_window.get(); }
@@ -61,7 +62,7 @@ private:
     std::unique_ptr<UIParam> m_ui = nullptr;
 
     std::vector<WindowHandle> m_windows;
-    std::unordered_map<std::wstring, size_t> m_group_index;
+    std::unordered_map<WindowGroup, size_t> m_group_index;
     std::vector<std::vector<WindowHandle *>> m_window_groups;
 
     std::unique_ptr<MainWindow> m_main_window = nullptr;

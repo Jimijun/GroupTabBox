@@ -9,6 +9,12 @@
 
 #include <windowsx.h>
 
+static bool multipleWindowsInGroup(const WindowGroup &group)
+{
+    const std::vector<WindowHandle *> &windows = globalData()->windowsFromGroup(group);
+    return windows.size() > 1;
+}
+
 ThumbnailWindowBase::~ThumbnailWindowBase()
 {
     hide();
@@ -407,7 +413,7 @@ void GroupThumbnailWindow::activateSelected()
         return;
 
     // if more than one window in the group, do not activate directly
-    if (multipleWindowsInGroup(m_selected->windowHandle()->exePath())) {
+    if (multipleWindowsInGroup(m_selected->windowHandle()->group())) {
         ListThumbnailWindow *list = globalData()->listWindow();
         if (list)
             list->activateSelected();
@@ -440,6 +446,8 @@ void GroupThumbnailWindow::initializeLayout()
     }
     m_selected = m_layout_manager->itemAt(0);
     m_layout_manager->alignItems();
+
+    updateListWindow();
 
     // calculate window rect
     const RectF &layout_rect = m_layout_manager->rect();
@@ -478,7 +486,7 @@ void GroupThumbnailWindow::beforeDrawContent(Graphics *graphics)
             continue;
 
         // if more than one window in the group, draw a fake shadow
-        if (multipleWindowsInGroup(item->windowHandle()->exePath())) {
+        if (multipleWindowsInGroup(item->windowHandle()->group())) {
             RectF rect = item->rect();
             rect.Offset(10 * scale, 10 * scale);
             brush.SetColor(Gdiplus::Color(ui->gridItemShadowColor()));
@@ -516,7 +524,7 @@ void GroupThumbnailWindow::handleLButtonUp(int x, int y)
     ThumbnailWindowBase::handleLButtonUp(x, y);
     y += m_view_rect.Y;
     if (m_selected && m_selected->rect().Contains(x, y)
-            && !multipleWindowsInGroup(m_selected->windowHandle()->exePath()))
+            && !multipleWindowsInGroup(m_selected->windowHandle()->group()))
         activateSelected();
 }
 
@@ -538,30 +546,19 @@ void GroupThumbnailWindow::updateListWindow()
     if (!list || !m_selected)
         return;
 
-    list->setGroup(m_selected->windowHandle()->exePath());
+    list->setGroup(m_selected->windowHandle()->group());
     if (!list->visible())
         list->show(m_keep_showing);
 }
 
-bool GroupThumbnailWindow::multipleWindowsInGroup(const std::wstring &group) const
-{
-    const std::vector<WindowHandle *> &windows = globalData()->windowsFromGroup(group);
-    int count = 0;
-    for (const auto &window : windows) {
-        if (window->monitor() == m_monitor && ++count > 1)
-            return true;
-    }
-    return false;
-}
-
 // --------------------ListThumbnailWindow---------------------
 
-void ListThumbnailWindow::setGroup(const std::wstring &group_name)
+void ListThumbnailWindow::setGroup(const WindowGroup &group)
 {
-    if (m_group_name == group_name)
+    if (m_group == group)
         return;
 
-    m_group_name = group_name;
+    m_group = group;
     if (visible()) {
         initializeLayout();
         initializeBitmap();
@@ -581,7 +578,7 @@ void ListThumbnailWindow::initializeLayout()
     } else {
         m_layout_manager->reinitialize(m_monitor, m_rect.Width);
     }
-    for (const auto &window : globalData()->windowsFromGroup(m_group_name)) {
+    for (const auto &window : globalData()->windowsFromGroup(m_group)) {
         if (window->monitor() == m_monitor)
             m_layout_manager->addItem(window);
     }

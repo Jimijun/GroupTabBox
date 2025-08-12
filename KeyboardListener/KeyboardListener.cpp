@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "resource.h"
+#include "utils/PairHash.h"
 
 #include <array>
 #include <unordered_set>
@@ -9,24 +10,6 @@
 
 using HotkeyPair = std::pair<char, UINT>;
 using NotifyPair = std::pair<HWND, int>;
-
-template <typename T>
-inline void hashCombine(std::size_t &seed, const T &v)
-{
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-template <typename U, typename V>
-struct std::hash<std::pair<U, V>>
-{
-    size_t operator()(const std::pair<U, V> &tt) const
-    {
-        size_t seed = 0;
-        hashCombine(seed, tt.first);
-        hashCombine(seed, tt.second);
-        return seed;
-    }
-};
 
 // shared memory
 #pragma data_seg(".shared")

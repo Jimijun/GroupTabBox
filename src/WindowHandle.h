@@ -12,6 +12,8 @@
 #pragma comment(lib, "dwmapi.lib")
 
 using Gdiplus::RectF;
+// group by exe path and monitor
+using WindowGroup = std::pair<std::wstring, HMONITOR>;
 
 class WindowHandle
 {
@@ -27,6 +29,7 @@ public:
     const std::wstring &title() const { return m_title; }
     const std::wstring &exePath() const { return m_exe_path; }
     HMONITOR monitor() const { return m_monitor; }
+    WindowGroup group() const { return { m_exe_path, m_monitor }; }
 
     void activate() const;
     void updateAttributes();

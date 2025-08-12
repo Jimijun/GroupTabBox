@@ -107,6 +107,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -122,6 +123,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -144,6 +146,7 @@
     <ClInclude Include="src\ThumbnailWindow.h" />
     <ClInclude Include="src\UIParam.h" />
     <ClInclude Include="src\WindowHandle.h" />
+    <ClInclude Include="utils\PairHash.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Configure.cpp" />
