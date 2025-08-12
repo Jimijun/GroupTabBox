@@ -176,16 +176,6 @@ bool GlobalData::update(HMONITOR monitor)
 
 LRESULT GlobalData::handleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    if (uMsg == WM_KILLFOCUS) {
-        HWND focus = reinterpret_cast<HWND>(wParam);
-        if (focus != m_group_window->hwnd() && focus != m_group_window->foreHwnd()
-                && focus != m_list_window->hwnd() && focus != m_list_window->foreHwnd()) {
-            m_group_window->hide();
-            m_list_window->hide();
-            return 0;
-        }
-    }
-
     LRESULT res = -1;
 
 #define HANDLE_MSG(window) \

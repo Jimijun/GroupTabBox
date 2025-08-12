@@ -126,6 +126,10 @@ void ThumbnailWindowBase::show(bool keep)
     m_monitor = globalData()->currentMonitor();
     initializeLayout();
 
+    // item at 0 is null means empty
+    if (!m_layout_manager->itemAt(0))
+        return;
+
     initializeBitmap();
     updateBitmap(true);
     updateView({ 0, 0, m_rect.Width, m_rect.Height });
