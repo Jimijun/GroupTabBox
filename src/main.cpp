@@ -11,6 +11,11 @@
 
 #pragma comment(lib, "gdiplus.lib")
 
+#pragma data_seg("RunMutex")
+bool gRunningInstance = false;
+#pragma data_seg()
+#pragma comment(linker, "/section:RunMutex,RWS")
+
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     return globalData()->handleMessage(hwnd, uMsg, wParam, lParam);
@@ -26,6 +31,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         runAsAdmin();
         return 0;
     }
+
+    // check if an instance is already running
+    if (gRunningInstance) {
+        MessageBox(nullptr, L"An instance is already running.", nullptr, MB_OK);
+        return 0;
+    }
+    gRunningInstance = true;
 
     setAutoStart(L"GroupTabBox", config()->autoStart());
 
