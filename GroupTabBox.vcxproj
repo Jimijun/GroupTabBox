@@ -107,8 +107,10 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y $(MSBuildProjectDirectory)\GroupTabBox.ini $(OutDirFullPath)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -123,8 +125,11 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y $(MSBuildProjectDirectory)\GroupTabBox.ini $(OutDirFullPath)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ResourceCompile Include="GroupTabBox.rc" />
@@ -146,6 +151,7 @@
     <ClInclude Include="src\ThumbnailWindow.h" />
     <ClInclude Include="src\UIParam.h" />
     <ClInclude Include="src\WindowHandle.h" />
+    <ClInclude Include="utils\ProgramUtils.h" />
     <ClInclude Include="utils\PairHash.h" />
   </ItemGroup>
   <ItemGroup>
@@ -159,6 +165,7 @@
     <ClCompile Include="src\ThumbnailWindow.cpp" />
     <ClCompile Include="src\UIParam.cpp" />
     <ClCompile Include="src\WindowHandle.cpp" />
+    <ClCompile Include="utils\ProgramUtils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

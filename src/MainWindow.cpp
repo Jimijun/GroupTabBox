@@ -43,7 +43,6 @@ bool MainWindow::create(HINSTANCE instance)
         return false;
     }
 
-    const Configure *config = globalData()->config();
     KeyboardHook *hook = globalData()->keyboardHook();
     bool success = true;
 
@@ -53,15 +52,15 @@ bool MainWindow::create(HINSTANCE instance)
     if (enable_prev) success &= hook->addHotkey(m_hwnd.get(), prev_id, MOD_ALT | MOD_SHIFT, key); \
     if (!success) return false
 
-    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config->switchGroupkey(),
-            config->enablePrevGroupHotkey(), HotkeyID::HotkeyIDSwitchPrevGroup);
-    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchWindow, config->switchWindowkey(),
-            config->enablePrevWindowHotkey(), HotkeyID::HotkeyIDSwitchPrevWindow);
-    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchMonitor, config->switchMonitorkey(),
-            config->enablePrevMonitorHotkey(), HotkeyID::HotkeyIDSwitchPrevMonitor);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchGroup, config()->switchGroupkey(),
+            config()->enablePrevGroupHotkey(), HotkeyID::HotkeyIDSwitchPrevGroup);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchWindow, config()->switchWindowkey(),
+            config()->enablePrevWindowHotkey(), HotkeyID::HotkeyIDSwitchPrevWindow);
+    REGISTER_HELPER(HotkeyID::HotkeyIDSwitchMonitor, config()->switchMonitorkey(),
+            config()->enablePrevMonitorHotkey(), HotkeyID::HotkeyIDSwitchPrevMonitor);
 #undef REGISTER_HELPER
 
-    const Configure::HotkeyPair &hotkey_pair = config->keepShowingHotkey();
+    const Configure::HotkeyPair &hotkey_pair = config()->keepShowingHotkey();
     if (hotkey_pair.first != 0 && hotkey_pair.second != 0) {
         if (!hook->addHotkey(m_hwnd.get(), HotkeyID::HotkeyIDKeepShowingWindow,
                 hotkey_pair.first, hotkey_pair.second))

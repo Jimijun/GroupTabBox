@@ -10,7 +10,10 @@ class Configure
 public:
     using HotkeyPair = std::pair<UINT, UINT>;
 
-    Configure() = default;
+    static Configure *instance();
+
+    bool autoStart() const { return m_auto_start; }
+    bool runAsAdmin() const { return m_run_as_admin; }
 
     bool ignoreMinimized() const { return m_ignore_minimized; }
 
@@ -29,6 +32,13 @@ public:
     bool load();
 
 private:
+    Configure() = default;
+    ~Configure() = default;
+
+    // general settings
+    bool m_auto_start = false;
+    bool m_run_as_admin = false;
+
     // window filter settings
     bool m_ignore_minimized = false;
 
@@ -46,3 +56,5 @@ private:
     bool m_enable_prev_monitor_hotkey = false;
     HotkeyPair m_keep_showing_hotkey = { 0, 0 };
 };
+
+Configure *config();

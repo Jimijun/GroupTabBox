@@ -89,13 +89,6 @@ bool GlobalData::initialize(HINSTANCE instance)
 {
     m_hinstance = instance;
 
-    if (!m_config) {
-        m_config = std::make_unique<Configure>();
-        if (!m_config)
-            return false;
-    }
-    m_config->load();
-
     if (!m_keyboard_hook) {
         m_keyboard_hook = std::make_unique<KeyboardHook>();
         if (!m_keyboard_hook || !m_keyboard_hook->initialize(instance))

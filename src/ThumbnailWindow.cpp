@@ -103,9 +103,8 @@ bool ThumbnailWindowBase::create(HINSTANCE instance)
     // foreground window's background should be fully transparent
     SetLayeredWindowAttributes(m_fore_hwnd.get(), RGB(0, 255, 0), 0, LWA_COLORKEY);
 
-    const Configure *config = globalData()->config();
     // set background alpha
-    float alpha = config->backgroundAlpha();
+    float alpha = config()->backgroundAlpha();
     SetLayeredWindowAttributes(m_hwnd.get(), 0, alpha * 255, LWA_ALPHA);
 
     return true;

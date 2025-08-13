@@ -1,4 +1,5 @@
 #include "Configure.h"
+#include "utils/ProgramUtils.h"
 
 #include <array>
 #include <fstream>
@@ -120,15 +121,31 @@ static void parseString(const SettingPair &setting_pair, void *mem_ptr)
     }
 }
 
+Configure *config()
+{
+    return Configure::instance();
+}
+
+Configure *Configure::instance()
+{
+    static Configure instance;
+    return &instance;
+}
+
 bool Configure::load()
 {
-    std::ifstream file(kConfigFile, std::ios::in);
+    const std::wstring file_dir = programDir();
+    std::string file_path(file_dir.begin(), file_dir.end());
+    file_path += kConfigFile;
+
+    std::ifstream file(file_path, std::ios::in);
     if (!file.is_open())
         return false;
 
     enum SettingGroup
     {
         None,
+        General,
         WindowFilter,
         UI,
         Hotkeys,
@@ -136,6 +153,7 @@ bool Configure::load()
     } current_setting_group = SettingGroup::None;
 
     static const std::unordered_map<std::string, SettingGroup> group_tag_map = {
+        { "[General]", SettingGroup::General },
         { "[Window Filter]", SettingGroup::WindowFilter },
         { "[UI]", SettingGroup::UI },
         { "[Hotkeys]", SettingGroup::Hotkeys },
@@ -144,6 +162,10 @@ bool Configure::load()
     using ConfigMap = std::unordered_map<std::string, void *>;
     const std::array<ConfigMap, SettingGroup::GroupNumber> setting_group_map = {
         ConfigMap{},  // None
+        ConfigMap{  // General
+            { "bAutoStart", &m_auto_start },
+            { "bRunAsAdmin", &m_run_as_admin },
+        },
         ConfigMap{  // Window Filter
             { "bIgnoreMinimized", &m_ignore_minimized },
         },

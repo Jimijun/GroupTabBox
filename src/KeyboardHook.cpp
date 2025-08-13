@@ -1,4 +1,5 @@
 #include "KeyboardHook.h"
+#include "utils/ProgramUtils.h"
 
 const wchar_t *kKeyboardDllFile = L"KeyboardListener.dll";
 
@@ -10,7 +11,8 @@ KeyboardHook::~KeyboardHook()
 
 bool KeyboardHook::initialize(HINSTANCE instance)
 {
-    m_dll = { LoadLibrary(kKeyboardDllFile), FreeLibrary };
+    const std::wstring file_path = programDir() + kKeyboardDllFile;
+    m_dll = { LoadLibrary(file_path.data()), FreeLibrary };
     if (!m_dll)
         return false;
 

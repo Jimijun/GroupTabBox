@@ -2,8 +2,10 @@
 #define UNICODE
 #endif
 
+#include "Configure.h"
 #include "GlobalData.h"
 #include "resource.h"
+#include "utils/ProgramUtils.h"
 
 #include <gdiplus.h>
 
@@ -17,6 +19,16 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         PWSTR lpCmdLine, int nCmdShow)
 {
+    config()->load();
+
+    if (!isAlreadyAdmin() && config()->runAsAdmin()) {
+        // start an admin process and exit current one
+        runAsAdmin();
+        return 0;
+    }
+
+    setAutoStart(L"GroupTabBox", config()->autoStart());
+
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 
     struct GdiToken

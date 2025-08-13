@@ -61,6 +61,9 @@
     <ClInclude Include="utils\PairHash.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="utils\ProgramUtils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Configure.cpp">
@@ -92,6 +95,9 @@
     </ClCompile>
     <ClCompile Include="src\WindowHandle.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\ProgramUtils.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

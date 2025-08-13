@@ -170,7 +170,7 @@ bool WindowHandle::validWindow(HWND hwnd)
 {
     WINDOWINFO info = {};
     if (!GetWindowInfo(hwnd, &info)
-            || (info.dwStyle & WS_ICONIC) && globalData()->config()->ignoreMinimized()
+            || (info.dwStyle & WS_ICONIC) && config()->ignoreMinimized()
             || !(info.dwStyle & WS_VISIBLE)
             || info.dwExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
         return false;
