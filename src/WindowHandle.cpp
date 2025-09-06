@@ -8,6 +8,13 @@
 #include <fstream>
 #include <regex>
 
+static std::wstring getWindowTitle(HWND hwnd)
+{
+    static std::array<wchar_t, 256> buffer;
+    GetWindowText(hwnd, buffer.data(), buffer.size());
+    return buffer.data();
+}
+
 static DWORD getWidnowPid(HWND hwnd)
 {
     DWORD pid;
@@ -70,8 +77,16 @@ WindowHandle::~WindowHandle()
 
 void WindowHandle::activate() const
 {
-    if (m_minimized)
-        ShowWindow(m_hwnd, SW_RESTORE);
+    if (m_minimized) {
+        WINDOWPLACEMENT placement = { sizeof(WINDOWPLACEMENT) };
+        GetWindowPlacement(m_hwnd, &placement);
+        if (placement.flags & WPF_RESTORETOMAXIMIZED) {
+            // window is maximized before minimized, show maximized
+            ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
+        } else {
+            ShowWindow(m_hwnd, SW_RESTORE);
+        }
+    }
 
     INPUT input;
     input.type = INPUT_MOUSE;
@@ -104,9 +119,7 @@ void WindowHandle::updateAttributes()
     }
     m_rect = RectF(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 
-    std::array<wchar_t, MAX_PATH> buffer;
-    GetWindowText(m_hwnd, buffer.data(), buffer.size());
-    m_title = buffer.data();
+    m_title = getWindowTitle(m_hwnd);
 
     m_exe_path = getProcessPath(getWidnowPid(m_hwnd));
     // if app runs under ApplicationFrameHost.exe, search process from its child windows
@@ -172,12 +185,15 @@ bool WindowHandle::validWindow(HWND hwnd)
     if (!GetWindowInfo(hwnd, &info)
             || (info.dwStyle & WS_ICONIC) && config()->ignoreMinimized()
             || !(info.dwStyle & WS_VISIBLE)
-            || info.dwExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
+            || info.dwExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE))
         return false;
 
     DWORD cloaked = 0;
     DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
     if (cloaked)
+        return false;
+
+    if (getWindowTitle(hwnd).empty())
         return false;
 
     return true;
